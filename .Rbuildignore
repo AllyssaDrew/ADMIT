@@ -1,0 +1,7 @@
+^dev$
+^\.git$
+^\.github$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.Rbuildignore$
+^README\.Rmd$
