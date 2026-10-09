@@ -13,8 +13,8 @@ Description: Chooses the global-ancestry window for an admixture-mapping cohort 
     truth are supplied and can be rescaled to another caller; a caller the package has not seen can
     be calibrated from scratch.
 License: MIT + file LICENSE
-URL: https://github.com/ganzeyu/ADMIT
-BugReports: https://github.com/ganzeyu/ADMIT/issues
+URL: https://github.com/AllyssaDrew/ADMIT
+BugReports: https://github.com/AllyssaDrew/ADMIT/issues
 Encoding: UTF-8
 Depends: R (>= 4.0)
 Imports: stats, graphics, grDevices

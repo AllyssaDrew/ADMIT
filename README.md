@@ -45,5 +45,5 @@ focal ancestry.
 ## Install
 
 ```r
-remotes::install_github("ganzeyu/ADMIT")
+remotes::install_github("AllyssaDrew/ADMIT")
 ```
