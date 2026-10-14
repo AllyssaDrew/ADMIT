@@ -39,9 +39,7 @@ adm_reliability <- function(q, eps0, lambda = 1) {
 #' value an error-free caller would reach on the whole cohort, so 1 is the ceiling.
 #'
 #' @param q_hat Estimated global focal ancestry, one value per individual -- the ESTIMATE, not the
-#'   truth. Selecting on the estimate is not a concession: it is what you can do, and it is also
-#'   better, because the quantity worth selecting on is reliability and the estimate is partly a
-#'   readout of it while the truth is not.
+#'   truth. A cut on the estimate attains the same efficiency as a cut on the unobservable truth.
 #' @param eps0 Background false-call rate, from [adm_eps0()].
 #' @param cuts Candidate lower cuts. Default is a log grid spanning the cohort.
 #' @param lambda Calling gain; see [adm_reliability()].

@@ -15,9 +15,7 @@ adm_efficiency(
 }
 \arguments{
 \item{q_hat}{Estimated global focal ancestry, one value per individual -- the ESTIMATE, not the
-truth. Selecting on the estimate is not a concession: it is what you can do, and it is also
-better, because the quantity worth selecting on is reliability and the estimate is partly a
-readout of it while the truth is not.}
+truth. A cut on the estimate attains the same efficiency as a cut on the unobservable truth.}
 
 \item{eps0}{Background false-call rate, from [adm_eps0()].}
 
