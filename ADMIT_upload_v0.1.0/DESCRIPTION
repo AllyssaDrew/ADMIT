@@ -1,0 +1,24 @@
+Package: ADMIT
+Title: ADMixture-mapping Inclusion Threshold
+Version: 0.1.0
+Authors@R: person("Ganze", "Yu", email = "ganzeyu@unc.edu", role = c("aut", "cre"))
+Description: Chooses the global-ancestry window for an admixture-mapping cohort from the
+    local-ancestry caller's own error rate, instead of by convention. An individual raises the
+    scan's non-centrality parameter only when their call is more reliable than about half the
+    pooled reliability, and where that leaves the threshold is set by the background false-call
+    rate: what the caller reports in people who carry none of the focal ancestry, which can be
+    measured directly in any cohort. The package estimates that rate, returns the detection- and
+    estimation-optimal cuts with the efficiency cost of any other cut, and reports how many
+    unadmixed individuals each cut admits. Reliability curves measured against held-out-founder
+    truth are supplied and can be rescaled to another caller; a caller the package has not seen can
+    be calibrated from scratch.
+License: MIT + file LICENSE
+URL: https://github.com/AllyssaDrew/ADMIT
+BugReports: https://github.com/AllyssaDrew/ADMIT/issues
+Encoding: UTF-8
+Depends: R (>= 4.0)
+Imports: stats, graphics, grDevices
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.3
