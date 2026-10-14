@@ -29,7 +29,7 @@ test_that("the shipped curve reproduces the published UK Biobank window", {
   th <- adm_threshold(c(runif(3000, 0, .9), abs(rnorm(49000, 0, 1.1e-3))), curve = "AFR")
   expect_s3_class(th, "admit_threshold")
   expect_equal(th$mode, "measured curve")
-  expect_gt(th$detection$cut, 1e-3)              # not the fivefold-too-tight closed-form answer
+  expect_gt(th$detection$cut, 1e-3)              # the measured curve, not the closed form (about twofold too tight)
   expect_lt(th$detection$cut, 2e-2)
   expect_true(th$estimation$cut >= th$detection$cut)   # estimation always the looser of the two
 })
