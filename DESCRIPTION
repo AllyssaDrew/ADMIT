@@ -1,7 +1,7 @@
 Package: ADMIT
 Title: ADMixture-mapping Inclusion Threshold
 Version: 0.1.0
-Authors@R: person("Ganze", "Yu", email = "ganzeyu@unc.edu", role = c("aut", "cre"))
+Authors@R: person("Zeyu", "Gan", email = "ganzeyu@unc.edu", role = c("aut", "cre"))
 Description: Chooses the global-ancestry window for an admixture-mapping cohort from the
     local-ancestry caller's own error rate, instead of by convention. An individual raises the
     scan's non-centrality parameter only when their call is more reliable than about half the
