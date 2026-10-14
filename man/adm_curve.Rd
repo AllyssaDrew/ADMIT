@@ -16,7 +16,7 @@ Data frame of `q_hat`, `a`, `w`, `v`, `rho`, `n`.
 The closed form in [adm_reliability()] has one free parameter and gets the *scaling* right --
 the optimal cut moves in proportion to `eps0` -- but not the *level*. Measured against a
 held-out-founder simulation on the same cohort it is too optimistic at the low end (reliability
-0.58 where the truth is 0.14) and places the optimum about fivefold too tight. So the default is
+0.59 where the measured value is 0.15) and places the optimum about twofold too tight. So the default is
 not a formula, it is a measured curve.
 }
 \details{

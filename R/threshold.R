@@ -98,8 +98,8 @@ adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_targ
     if (!is.numeric(e) || length(e) != 1L || !is.finite(e) || e <= 0)
       stop("give `curve`, or an `eps0` that is a positive number or an `admit_eps0` object")
     warning("the one-parameter closed form reproduces how the optimum SCALES with eps0 but not ",
-            "its level: against known truth it sits about 5x too tight and overstates efficiency ",
-            "by ~0.18. Prefer curve = 'AFR' / 'SAS', or calibrate your own.", call. = FALSE)
+            "its level: against known truth it sits about 2x too tight and overstates efficiency ",
+            "by ~0.13. Prefer curve = 'AFR' / 'SAS', or calibrate your own.", call. = FALSE)
   }
   tab <- adm_efficiency(q_hat, e, cuts = cuts, lambda = lambda, upper = upper, curve = curve)
   tab <- tab[tab$n > 0, , drop = FALSE]

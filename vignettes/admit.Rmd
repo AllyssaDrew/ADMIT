@@ -12,14 +12,26 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 6, fig.height
 library(ADMIT)
 ```
 
-## The problem
+## Overview
 
-Admixture mapping regresses a trait on local ancestry, so what each individual contributes is the
-*variance* their local ancestry has across the genome: `2q(1-q)`, which vanishes as they approach
-unadmixed. The caller's error does not vanish. A truly unadmixed individual still receives invented
-focal tracts at a rate `eps0` that barely depends on who they are.
+This vignette walks through choosing the inclusion window for an admixture-mapping scan with ADMIT.
+The workflow has three steps:
 
-So reliability is
+1. measure the background false-call rate ε₀ of your local-ancestry caller in your own cohort;
+2. choose a reliability curve: a shipped curve, a shipped curve rescaled to your caller, or one you
+   calibrate;
+3. compute the detection- and estimation-optimal windows.
+
+The examples use 52,639 UK Biobank participants with RFMix v2 calls and African as the focal
+ancestry. Steps that need individual-level data are shown with their output rather than run.
+
+## Why reliability sets a window
+
+Admixture mapping regresses a trait on local ancestry, so each individual contributes information in
+proportion to the variance of their local ancestry across the genome, 2q(1 − q). This variance
+vanishes as global ancestry q approaches 0 or 1. The caller's error does not: an individual who
+carries no focal ancestry still receives focal calls at a background rate ε₀. Reliability, the share
+of an individual's called variance that is signal, therefore falls steeply at low q:
 
 ```{r}
 q <- 10^seq(-4, -0.5, length.out = 200)
@@ -27,14 +39,14 @@ plot(q, adm_reliability(q, eps0 = 1.4e-3), type = "l", log = "x", lwd = 2,
      xlab = "global focal ancestry q", ylab = "reliability")
 ```
 
-and it collapses exactly where most of a biobank's nominally-admixed individuals sit. Including them
-adds people, not information. That is why a threshold has to exist, and the package's job is to put
-it somewhere defensible rather than at a round number.
+An individual raises the power of the scan only when their reliability exceeds about half the pooled
+reliability of those already included. This half-reliability rule turns into a window on global
+ancestry whose lower bound sits at a few multiples of ε₀.
 
-## Step 1 — measure your own caller's floor
+## Step 1: measure ε₀
 
-`eps0` is what your caller reports for the focal ancestry in people who carry none of it. You do not
-need a simulation: any biobank contains individuals who are near-pure in some *other* ancestry.
+`adm_eps0()` takes the global ancestry proportions and the genome-wide mean focal local-ancestry
+dosage of each individual. It estimates ε₀ from individuals who are near-pure in a non-focal ancestry:
 
 ```{r eval = FALSE}
 eps <- adm_eps0(global_Q, local_dosage = my_dosage, focal = "AFR", pure_cut = 0.99)
@@ -44,92 +56,110 @@ eps
 #>   reference: 39,069 of 52,639 individuals, >99% in a single non-focal ancestry
 ```
 
-The reference group is defined on *other* ancestries on purpose. Taking people whose focal estimate
-is near zero is circular — those are the ones the caller got right, so the floor measured on them is
-biased down, and most in exactly the cohorts where the focal ancestry is hard to call.
+The reference group is defined on the other ancestries. Selecting individuals whose focal estimate is
+near zero would keep the ones the caller got right and underestimate ε₀. For South Asian ancestry in
+UK Biobank, the focal-estimate rule keeps 1,956 individuals, whereas the non-focal rule keeps 38,899
+and measures the higher rate the caller actually has.
 
-## Step 2 — get the window
+## Step 2: choose a reliability curve
 
-```{r eval = FALSE}
-th <- adm_threshold(q_hat = cohort$AFR, curve = "AFR", eps0 = eps)
-th
-#> Inclusion window  [measured curve]
-#>
-#>   detection optimum    0.00382   efficiency 0.840   keeps 3,705
-#>   estimation optimum   0.00568   efficiency 0.833   keeps 2,730
-#>
-#>   recommended window   0.00382 to 0.00568
-plot(th)
-```
-
-Two optima, because loosening the window moves detection and estimation oppositely: more individuals
-shrink the standard error while worsening attenuation. Anything between them is defensible.
-
-## What `curve =` is, and why it is not optional
-
-The closed form has one free parameter and gets the **scaling** right — the optimum moves in
-proportion to `eps0`, with a ratio near 1.45 across two decades. It does **not** get the level right.
-Checked against a held-out-founder simulation on the same cohort:
-
-| | closed form | measured |
-|---|---|---|
-| reliability at q̂ = 0.001 | 0.58 | **0.14** |
-| detection optimum | 8.4e-4 | **4.4e-3** |
-| efficiency there | 0.97 | **0.78** |
-
-A user running the closed form alone would set the cut about fivefold too tight and believe their
-efficiency was 0.97 when it was 0.78. So `adm_threshold()` warns when no curve is supplied, and the
-shipped curves are the default route.
+ADMIT ships reliability curves for African and South Asian focal ancestry. They were measured on
+16,000 simulated genomes built from held-out founders and called by RFMix v2 against a five-ancestry
+HGDP + 1000 Genomes reference:
 
 ```{r}
 head(adm_curve("AFR"), 4)
 ```
 
-Shipped curves come from RFMix 2 against the 5-way HGDP+1kGP reference, 16,000 held-out-founder
-mosaics. A different caller is a different curve — but it can be moved.
+A measured curve is the default because the one-parameter closed form in `adm_reliability()` gets
+the scaling with ε₀ right but not the level. On the UK Biobank cohort:
 
-## Using a shipped curve for a caller we did not measure
+| | closed form | measured curve |
+|---|---|---|
+| reliability at q̂ ≈ 0.001 | 0.59 | **0.15** |
+| detection-optimal cut | 0.0021 | **0.0038** |
+| efficiency at that cut | 0.97 (claimed) | **0.84** |
 
-Reliability depends on `q` only through `q/eps0`, so a curve should move to another caller by scaling
-its axis by the ratio of their floors. Tested, on RFMix and FLARE run over the same mosaics, where
-`eps0` differs 2.4-fold (1.33e-3 against 3.19e-3):
+The closed form places the cut about twofold too tight and reports an efficiency the scan does not
+reach; at its cut the measured efficiency is 0.83. `adm_threshold()` warns when it is used without a
+curve.
 
-| q/eps0 | 0.4 | 1.5 | 7.5 | 38 | 150 |
+### Transferring a curve to another caller
+
+Reliability depends on global ancestry through q/ε₀, so a curve measured for one caller transfers to
+another by rescaling with the ratio of their background rates. RFMix and FLARE, run on the same
+simulated genomes, differ 2.4-fold in ε₀ (1.33 × 10⁻³ and 3.19 × 10⁻³), and their curves agree on the
+rescaled axis:
+
+| q/ε₀ | 0.4 | 1.5 | 7.5 | 38 | 150 |
 |---|---|---|---|---|---|
 | reliability, RFMix | 0.284 | 0.552 | 0.848 | 0.942 | 0.955 |
 | reliability, FLARE | 0.255 | 0.574 | 0.848 | 0.943 | 0.952 |
 
-Median disagreement across 0.38 < q/eps0 < 319 is **0.005**. What it costs a FLARE user on a real
-52,639-individual cohort:
-
-| window chosen from | cut | efficiency attained |
-|---|---|---|
-| FLARE's own curve | 7.4e-3 | 0.859 |
-| **shipped RFMix curve, rescaled** | 9.0e-3 | **0.858** |
-| shipped RFMix curve, unrescaled | 3.8e-3 | 0.843 |
+The median disagreement across 0.38 < q/ε₀ < 319 is 0.005. On the 52,639-person cohort, a FLARE user
+choosing the window from the rescaled RFMix curve attains an efficiency of 0.858, against 0.859 from
+FLARE's own curve and 0.843 without rescaling:
 
 ```{r eval = FALSE}
 cur <- adm_rescale(adm_curve("AFR"), eps0_from = 1.33e-3, eps0_to = eps)
-adm_threshold(cohort$AFR, curve = cur)
 ```
 
-Two things follow. Rescaling is a supported route, so an unmeasured caller does not force a full
-calibration. And the choice is **forgiving**: efficiency near the optimum is a plateau, so a twofold
-error in the cut costs under 0.02. Quote the window to one significant figure.
+### Calibrating a curve for a new caller
 
-Validated on one caller pair, one focal ancestry, one reference panel.
+For a caller or reference panel unlike the shipped ones, calibrate a curve directly. ADMIT holds out
+founders, simulates admixed genomes with your cohort's ancestry distribution, and scores your
+caller's output against the known truth. You run the caller yourself:
 
-## Reproducing the two published windows
+```{r eval = FALSE}
+split <- adm_holdout(ref_pop, frac = 0.25)            # founders the caller will not see
 
-On the UK Biobank cohort the package returns 3.8e-3 (AFR) and 5.4e-3 (SAS) against the 4.4e-3 and
-2.6e-3 obtained from the per-individual scores directly. The difference is binning: the shipped curve
-averages `a` and `w` within q̂ bins and interpolates, where the direct computation keeps every
-individual. AFR lands within 15%; SAS within a factor of two, which is enough to pick a window and
-not enough to quote to two digits.
+sim <- adm_simulate(hap, hap_pop, site, map,
+                    q_dist = global_Q$AFR,            # your cohort's ancestry distribution
+                    focal = "AFR", out_dir = "sim/")  # writes sim/sim_query.vcf
 
-## What this does not do
+# run your caller on sim/sim_query.vcf against the reduced reference panel, then:
+cur <- adm_score(sim, called = "sim/calls.msp.tsv", format = "msp")
+```
 
-It optimises the two-ancestry non-centrality parameter. Contamination by a *third* ancestry is a
-different axis and is handled in the scan — by adjusting for the other ancestries' local dosage per
-window — not by the inclusion window. Narrowing the window to reduce third-ancestry contamination
-costs information for no gain in that respect.
+`adm_score()` reads RFMix and Gnomix `.msp.tsv` output, FLARE ancestry VCFs, or a pre-parsed matrix.
+Simulate genome-wide: the window is set where focal tracts are rarest, and an individual with
+q = 0.005 carries on average 1.4 focal tracts across the genome but 0.03 on chromosome 22.
+
+## Step 3: compute the window
+
+```{r eval = FALSE}
+th <- adm_threshold(q_hat = global_Q$AFR, curve = "AFR", eps0 = eps)
+th
+#> Inclusion window  [measured curve]
+#>
+#>   detection optimum    0.00382   efficiency 0.840   keeps 3,705
+#>   estimation optimum   0.00568   efficiency 0.833   keeps 2,321
+#>
+#>   recommended window   0.00382 to 0.00568
+plot(th)
+```
+
+The detection optimum maximizes the non-centrality of the test. The estimation optimum minimizes the
+mean squared error of the effect estimate, because a looser window shrinks the standard error but
+attenuates the estimate. Any cut between the two serves both purposes. Efficiency is flat near its
+maximum, so a twofold change in the cut costs less than 0.02 and the window can be reported to one
+significant figure.
+
+To evaluate cuts you are considering, including a convention you want to compare against, use
+`adm_efficiency()`. It returns the number of individuals retained, the efficiency, and the
+attenuation factor R:
+
+```{r eval = FALSE}
+adm_efficiency(global_Q$AFR, curve = "AFR", cuts = c(0.002, 0.005, 0.02, 0.05))
+```
+
+On UK Biobank, ADMIT returns 0.0038–0.0057 for African and 0.0054–0.016 for South Asian ancestry.
+The South Asian window is wider because RFMix assigns South Asian ancestry to unadmixed individuals at
+a higher rate.
+
+## Using the window in a scan
+
+The window optimizes the contrast between the focal ancestry and the reference ancestry. In cohorts
+with more than two ancestries, model the local dosages of the other non-reference ancestries in the
+association test itself; narrowing the window does not remove their contribution and costs
+information.
