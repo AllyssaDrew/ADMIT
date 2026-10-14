@@ -13,4 +13,4 @@ First release.
 * `adm_holdout()`, `adm_simulate()` and `adm_score()` calibrate a curve for any caller. The package
   generates the query and scores the output; it does not run the caller.
 * The one-parameter closed form is available but warns: it reproduces how the optimum scales with
-  `eps0` and not its level, sitting about fivefold too tight against known truth.
+  `eps0` and not its level, sitting about twofold too tight against known truth.
