@@ -119,12 +119,12 @@ A worked example is in the vignette: `vignette("admit", package = "ADMIT")`.
 
 If you use ADMIT, please cite:
 
-> Yu, G. et al. Calibrated admixture mapping reveals ancestry-specific trans regulation of the human
+> Gan, Z. et al. Calibrated admixture mapping reveals ancestry-specific trans regulation of the human
 > plasma proteome. *In preparation* (2026).
 
 ## Contact
 
-Ganze Yu (ganzeyu@unc.edu). Please report bugs and feature requests on the
+Zeyu Gan (ganzeyu@unc.edu). Please report bugs and feature requests on the
 [issue tracker](https://github.com/AllyssaDrew/ADMIT/issues).
 
 ## License
