@@ -65,8 +65,8 @@ near-pure in a *non-focal* ancestry (default > 99%). Defining the reference grou
 estimate itself would select the individuals the caller got right and underestimate ε₀.
 
 **Step 2. Choose a reliability curve.** ADMIT ships curves for African and South Asian focal ancestry,
-measured on 16,000 simulated genomes called by RFMix v2 against a five-ancestry HGDP + 1000 Genomes
-reference. Three routes are available:
+measured on simulated genomes (3,600 per ancestry, genome-wide, built from held-out founders) called by
+RFMix v2 against a five-ancestry HGDP + 1000 Genomes reference. Three routes are available:
 
 | your setting | route |
 |---|---|

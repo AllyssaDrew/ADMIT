@@ -25,7 +25,7 @@ is an empirical question, and it was tested.
 }
 \section{What the test showed}{
 
-RFMix 2 and FLARE were run on the same 16,000 held-out-founder mosaics, where they differ 2.4-fold
+RFMix 2 and FLARE were run on the same genome-wide held-out-founder mosaics (3,600 per focal ancestry), where they differ 2.4-fold
 in `eps0` (1.33e-3 against 3.19e-3). Plotted against the scaled axis `q/eps0` the two measured
 reliability curves agree to a median of **0.005** across 0.38 < q/eps0 < 319. Operationally, on a
 real 52,639-individual cohort: a FLARE user picking their window from FLARE's own curve attains

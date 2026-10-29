@@ -8,17 +8,18 @@
 #'
 #' @param focal `"AFR"` or `"SAS"`.
 #' @return Data frame of `q_hat`, `a`, `w`, `v`, `rho`, `n`.
-#' @details Shipped from RFMix 2 against the 5-way HGDP+1kGP reference (AFR/EAS/EUR/NAM/SAS),
-#'   16,000 held-out-founder mosaics, T = 8 generations, q drawn from the real UK Biobank
-#'   distribution. **A different caller or reference panel is a different curve.** Whether a
-#'   shipped curve can simply be rescaled by the ratio of the two `eps0` values is untested; until
-#'   it is, treat the shipped curve as a starting point and calibrate your own if your setup
-#'   differs.
+#' @details Shipped from RFMix 2 against the 5-way HGDP+1kGP reference (AFR/EAS/EUR/NAM/SAS):
+#'   genome-wide held-out-founder mosaics, 3,600 per focal ancestry, single admixture pulse T = 8
+#'   generations, q sampled to cover the low end densely (300 at q = 0, 900 below 0.005, 1,200 in
+#'   0.005-0.1, 1,200 above). Each curve carries the `eps0` of the simulation it was measured on
+#'   (AFR 1.33e-3, SAS 2.46e-3), which is what [adm_rescale()] scales from. **A different caller or
+#'   reference panel is a different curve**: rescale by `eps0` (see [adm_rescale()]) or calibrate your own.
 #' @export
 adm_curve <- function(focal = c("AFR", "SAS")) {
   focal <- match.arg(focal)
   d <- adm_curves[adm_curves$focal == focal, , drop = FALSE]
   rownames(d) <- NULL
+  attr(d, "focal") <- focal                     # adm_rescale() reads the curve's own eps0 from this
   d
 }
 
@@ -36,7 +37,7 @@ adm_curve <- function(focal = c("AFR", "SAS")) {
 #' is an empirical question, and it was tested.
 #'
 #' @section What the test showed:
-#' RFMix 2 and FLARE were run on the same 16,000 held-out-founder mosaics, where they differ 2.4-fold
+#' RFMix 2 and FLARE were run on the same genome-wide held-out-founder mosaics (3,600 per focal ancestry), where they differ 2.4-fold
 #' in `eps0` (1.33e-3 against 3.19e-3). Plotted against the scaled axis `q/eps0` the two measured
 #' reliability curves agree to a median of **0.005** across 0.38 < q/eps0 < 319. Operationally, on a
 #' real 52,639-individual cohort: a FLARE user picking their window from FLARE's own curve attains
@@ -60,7 +61,12 @@ adm_curve <- function(focal = c("AFR", "SAS")) {
 adm_rescale <- function(curve, eps0_from = NULL, eps0_to) {
   if (is.character(curve)) curve <- adm_curve(curve)
   if (inherits(eps0_to, "admit_eps0")) eps0_to <- eps0_to$eps0
-  if (is.null(eps0_from)) eps0_from <- attr(adm_curves, "eps0")[[attr(curve, "focal") %||% "AFR"]]
+  if (is.null(eps0_from)) {
+    f <- attr(curve, "focal") %||% (if ("focal" %in% names(curve)) as.character(curve$focal[1]))
+    if (is.null(f) || !f %in% names(attr(adm_curves, "eps0")))
+      stop("`eps0_from` is needed: this curve is not one of the shipped curves")
+    eps0_from <- attr(adm_curves, "eps0")[[f]]
+  }
   if (!is.numeric(eps0_from) || !is.numeric(eps0_to) || eps0_from <= 0 || eps0_to <= 0)
     stop("`eps0_from` and `eps0_to` must be positive numbers")
   curve$q_hat <- curve$q_hat * (eps0_to / eps0_from)

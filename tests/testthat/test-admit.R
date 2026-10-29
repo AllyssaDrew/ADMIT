@@ -53,3 +53,11 @@ test_that("efficiency is bounded and monotone in the right places", {
   expect_true(all(tab$eff >= 0 & tab$eff <= 1))
   expect_true(all(diff(tab$n) <= 0))             # a stricter cut never keeps more people
 })
+
+test_that("adm_rescale scales each shipped curve from its own simulation eps0", {
+  for (f in c("AFR", "SAS")) {
+    e <- attr(ADMIT:::adm_curves, "eps0")[[f]]
+    expect_equal(attr(adm_rescale(adm_curve(f), eps0_to = e), "rescaled_by"), 1)
+  }
+  expect_equal(unname(attr(ADMIT:::adm_curves, "eps0")), c(1.33e-3, 2.46e-3), tolerance = 0.01)
+})

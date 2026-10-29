@@ -20,10 +20,10 @@ held-out-founder simulation on the same cohort it is too optimistic at the low e
 not a formula, it is a measured curve.
 }
 \details{
-Shipped from RFMix 2 against the 5-way HGDP+1kGP reference (AFR/EAS/EUR/NAM/SAS),
-  16,000 held-out-founder mosaics, T = 8 generations, q drawn from the real UK Biobank
-  distribution. **A different caller or reference panel is a different curve.** Whether a
-  shipped curve can simply be rescaled by the ratio of the two `eps0` values is untested; until
-  it is, treat the shipped curve as a starting point and calibrate your own if your setup
-  differs.
+Shipped from RFMix 2 against the 5-way HGDP+1kGP reference (AFR/EAS/EUR/NAM/SAS):
+  genome-wide held-out-founder mosaics, 3,600 per focal ancestry, single admixture pulse T = 8
+  generations, q sampled to cover the low end densely (300 at q = 0, 900 below 0.005, 1,200 in
+  0.005-0.1, 1,200 above). Each curve carries the `eps0` of the simulation it was measured on
+  (AFR 1.33e-3, SAS 2.46e-3), which is what \code{\link[=adm_rescale]{adm_rescale()}} scales from. **A different caller or
+  reference panel is a different curve**: rescale by `eps0` (see \code{\link[=adm_rescale]{adm_rescale()}}) or calibrate your own.
 }

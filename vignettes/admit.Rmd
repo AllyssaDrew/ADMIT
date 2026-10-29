@@ -64,8 +64,8 @@ and measures the higher rate the caller actually has.
 ## Step 2: choose a reliability curve
 
 ADMIT ships reliability curves for African and South Asian focal ancestry. They were measured on
-16,000 simulated genomes built from held-out founders and called by RFMix v2 against a five-ancestry
-HGDP + 1000 Genomes reference:
+3,600 simulated genomes per ancestry, built genome-wide from held-out founders and called by RFMix v2
+against a five-ancestry HGDP + 1000 Genomes reference:
 
 ```{r}
 head(adm_curve("AFR"), 4)
