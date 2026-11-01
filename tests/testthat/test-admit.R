@@ -55,9 +55,21 @@ test_that("efficiency is bounded and monotone in the right places", {
 })
 
 test_that("adm_rescale scales each shipped curve from its own simulation eps0", {
-  for (f in c("AFR", "SAS")) {
-    e <- attr(ADMIT:::adm_curves, "eps0")[[f]]
-    expect_equal(attr(adm_rescale(adm_curve(f), eps0_to = e), "rescaled_by"), 1)
+  k <- attr(ADMIT:::adm_curves, "eps0")
+  for (key in names(k)) {
+    p <- strsplit(key, "|", fixed = TRUE)[[1]]                       # caller | focal | background
+    cur <- adm_curve(p[2], caller = p[1], background = p[3])
+    expect_equal(attr(adm_rescale(cur, eps0_to = k[[key]]), "rescaled_by"), 1)
   }
-  expect_equal(unname(attr(ADMIT:::adm_curves, "eps0")), c(1.33e-3, 2.46e-3), tolerance = 0.01)
+  expect_equal(unname(k[c("RFMix|AFR|European", "RFMix|SAS|European")]), c(1.33e-3, 2.46e-3), tolerance = 0.01)
+})
+
+test_that("a curve belongs to a pair of ancestries, and rescaling warns across a wide gap", {
+  eu <- adm_curve("SAS", caller = "FLARE", background = "European")
+  af <- adm_curve("SAS", caller = "FLARE", background = "African")
+  r <- function(cur, q) approx(log(cur$q_hat), cur$rho, xout = log(q), rule = 2)$y
+  expect_gt(r(af, 0.01), 0.9)        # South Asian on an African background is recovered
+  expect_lt(r(eu, 0.01), 0.2)        # the same ancestry on a European background is not
+  expect_warning(adm_rescale(adm_curve("AFR", caller = "FLARE"), eps0_to = 6e-3), "rescaling by")
+  expect_silent(adm_rescale(adm_curve("AFR", caller = "FLARE"), eps0_to = 1e-3))
 })

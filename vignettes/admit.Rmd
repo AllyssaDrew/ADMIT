@@ -68,7 +68,7 @@ ADMIT ships reliability curves for African and South Asian focal ancestry. They 
 against a five-ancestry HGDP + 1000 Genomes reference:
 
 ```{r}
-head(adm_curve("AFR"), 4)
+head(adm_curve("AFR"), 4)            # RFMix by default; adm_curve("AFR", caller = "FLARE") for FLARE
 ```
 
 A measured curve is the default because the one-parameter closed form in `adm_reliability()` gets

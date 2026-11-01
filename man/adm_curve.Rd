@@ -4,10 +4,19 @@
 \alias{adm_curve}
 \title{Reliability curves measured against known truth}
 \usage{
-adm_curve(focal = c("AFR", "SAS"))
+adm_curve(
+  focal = c("AFR", "SAS"),
+  caller = c("RFMix", "FLARE"),
+  background = c("European", "African")
+)
 }
 \arguments{
 \item{focal}{`"AFR"` or `"SAS"`.}
+
+\item{caller}{`"RFMix"` (default) or `"FLARE"`.}
+
+\item{background}{the ancestry the rest of the genome comes from: `"European"` (default) or,
+for South Asian ancestry called by FLARE, `"African"`.}
 }
 \value{
 Data frame of `q_hat`, `a`, `w`, `v`, `rho`, `n`.
@@ -20,10 +29,22 @@ held-out-founder simulation on the same cohort it is too optimistic at the low e
 not a formula, it is a measured curve.
 }
 \details{
-Shipped from RFMix 2 against the 5-way HGDP+1kGP reference (AFR/EAS/EUR/NAM/SAS):
-  genome-wide held-out-founder mosaics, 3,600 per focal ancestry, single admixture pulse T = 8
-  generations, q sampled to cover the low end densely (300 at q = 0, 900 below 0.005, 1,200 in
-  0.005-0.1, 1,200 above). Each curve carries the `eps0` of the simulation it was measured on
-  (AFR 1.33e-3, SAS 2.46e-3), which is what \code{\link[=adm_rescale]{adm_rescale()}} scales from. **A different caller or
-  reference panel is a different curve**: rescale by `eps0` (see \code{\link[=adm_rescale]{adm_rescale()}}) or calibrate your own.
+Two callers are shipped.
+  `RFMix` is RFMix 2 against the 5-way 446-sample HGDP+1kGP reference used in UK Biobank:
+  genome-wide held-out-founder mosaics, 3,600 per focal ancestry, single pulse T = 8 generations.
+  `FLARE` is FLARE 0.6.0 against a 3,201-sample 5-way reference matching the All of Us setup:
+  16,000 mosaics, founders held out in five rotating folds with their 1000 Genomes relatives removed,
+  q covering the whole 0-1 range, validated against the real 52,639-participant UK Biobank cohort
+  run through the same FLARE setup.
+
+  **A curve belongs to a pair of ancestries, not to one.** Reliability depends on what the rest of the
+  genome is, because the caller has to tell the focal ancestry apart from it. South Asian ancestry on an
+  African background is recovered almost perfectly (reliability 0.98 at q = 0.01); the same ancestry on a
+  European background is barely recovered at all (0.09), because South Asian and European haplotypes are
+  far less differentiated. African ancestry on a European background sits at 0.68. In a cohort whose
+  participants have mixed backgrounds a single curve averages over groups that differ this much, so pick
+  the background your cohort actually has, or stratify.
+
+  Each curve carries the `eps0` of the simulation it was measured on, computed the way [adm_eps0()]
+  computes it on real data, which is what [adm_rescale()] scales from.
 }

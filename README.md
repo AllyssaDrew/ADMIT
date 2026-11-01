@@ -71,7 +71,7 @@ RFMix v2 against a five-ancestry HGDP + 1000 Genomes reference. Three routes are
 | your setting | route |
 |---|---|
 | RFMix with a comparable reference | `curve = "AFR"` or `curve = "SAS"` |
-| another caller | `adm_rescale(adm_curve("AFR"), eps0_to = eps)` |
+| another caller | `adm_curve("AFR", caller = "FLARE")`, or `adm_rescale(adm_curve("AFR"), eps0_to = eps)` |
 | a new caller or reference panel | calibrate your own curve (below) |
 
 Reliability depends on global ancestry through q/ε₀, so a shipped curve transfers to another caller
@@ -108,7 +108,7 @@ too few of them to measure reliability there.
 | `adm_eps0()` | background false-call rate of the caller, from your cohort |
 | `adm_threshold()` | detection- and estimation-optimal inclusion window |
 | `adm_efficiency()` | power efficiency and attenuation at any set of cuts |
-| `adm_curve()` | shipped reliability curves (RFMix v2; AFR, SAS) |
+| `adm_curve()` | shipped reliability curves (RFMix 2 and FLARE 0.6.0; AFR, SAS; European or African background) |
 | `adm_rescale()` | transfer a curve to another caller via ε₀ |
 | `adm_holdout()`, `adm_simulate()`, `adm_score()` | calibrate a curve for a new caller |
 | `adm_reliability()` | closed-form reliability as a function of q and ε₀ |

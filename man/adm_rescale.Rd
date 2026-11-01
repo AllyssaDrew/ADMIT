@@ -40,5 +40,5 @@ figure, not two.
 
 \examples{
 cur <- adm_curve("AFR")
-head(adm_rescale(cur, eps0_from = 1.33e-3, eps0_to = 3.19e-3), 3)
+head(adm_rescale(cur, eps0_from = 1.33e-3, eps0_to = 1.6e-3), 3)
 }
