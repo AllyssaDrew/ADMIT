@@ -19,6 +19,12 @@
 #'   ancestry dosage on a 0-2 scale (or 0-1; see `scale_2`). Same order as `global_Q` rows.
 #' @param focal Name of the focal ancestry column in `global_Q`.
 #' @param pure_cut An individual joins the reference group when some non-focal ancestry exceeds this.
+#' @param background Optional: name a single non-focal ancestry and the reference group becomes the
+#'   individuals near-pure in *that* ancestry alone. Reliability belongs to a pair of ancestries, not
+#'   to one (see [adm_curve()]), so an `eps0` meant to calibrate a particular background curve has to
+#'   be measured against that background. With the default `NULL` the reference is near-pure in any
+#'   non-focal ancestry, which in most cohorts means whichever is commonest -- fine when one curve is
+#'   in use, wrong when the curve is background-specific.
 #' @param scale_2 `TRUE` (default) if `local_dosage` is on a 0-2 diploid scale, so it is halved to a
 #'   proportion. Set `FALSE` if you already pass proportions.
 #' @param min_ref Error if the reference group is smaller than this.
@@ -36,7 +42,7 @@
 #' adm_eps0(Q, dose, focal = "AFR")
 #' @export
 adm_eps0 <- function(global_Q, local_dosage, focal, pure_cut = 0.99,
-                     scale_2 = TRUE, min_ref = 50L) {
+                     scale_2 = TRUE, min_ref = 50L, background = NULL) {
   global_Q <- as.data.frame(global_Q)
   if (!focal %in% names(global_Q))
     stop("`focal` must name a column of `global_Q`; have: ", paste(names(global_Q), collapse = ", "))
@@ -46,13 +52,20 @@ adm_eps0 <- function(global_Q, local_dosage, focal, pure_cut = 0.99,
 
   other <- setdiff(names(global_Q), focal)
   if (!length(other)) stop("`global_Q` needs at least one ancestry besides `focal`")
+  if (!is.null(background)) {
+    if (length(background) != 1L || !background %in% other)
+      stop("`background` must name one non-focal column of `global_Q`; have: ",
+           paste(other, collapse = ", "))
+    other <- background
+  }
   M <- as.matrix(global_Q[, other, drop = FALSE])
   # near-pure in SOME other ancestry -- never defined on the focal estimate itself
   is_ref <- apply(M, 1L, max, na.rm = TRUE) > pure_cut
   is_ref[is.na(is_ref)] <- FALSE
   if (sum(is_ref) < min_ref)
     stop("only ", sum(is_ref), " individuals exceed pure_cut = ", pure_cut,
-         " in a non-focal ancestry; lower `pure_cut` or pass `min_ref`")
+         if (is.null(background)) " in a non-focal ancestry" else paste0(" in ", background),
+         "; lower `pure_cut` or pass `min_ref`")
 
   qh <- if (scale_2) local_dosage / 2 else local_dosage
   qh_ref <- qh[is_ref]
@@ -66,6 +79,7 @@ adm_eps0 <- function(global_Q, local_dosage, focal, pure_cut = 0.99,
     n_total    = nrow(global_Q),
     pure_cut   = pure_cut,
     focal      = focal,
+    background = background,
     ref_by     = sort(table(which_pure), decreasing = TRUE),
     q_hat_ref  = qh_ref,
     q_hat      = qh
@@ -76,8 +90,9 @@ adm_eps0 <- function(global_Q, local_dosage, focal, pure_cut = 0.99,
 print.admit_eps0 <- function(x, ...) {
   cat(sprintf("Background false-call rate for focal %s\n", x$focal))
   cat(sprintf("  eps0 = %.3g   (sd across the reference group %.3g)\n", x$eps0, x$eps0_sd))
-  cat(sprintf("  reference: %s of %s individuals, >%.0f%% in a single non-focal ancestry\n",
-              format(x$n_ref, big.mark = ","), format(x$n_total, big.mark = ","), 100 * x$pure_cut))
+  cat(sprintf("  reference: %s of %s individuals, >%.0f%% %s\n",
+              format(x$n_ref, big.mark = ","), format(x$n_total, big.mark = ","), 100 * x$pure_cut,
+              if (is.null(x$background)) "in a single non-focal ancestry" else paste(x$background, "(background-matched)")))
   cat("  made up of: ",
       paste(sprintf("%s %s", names(x$ref_by), format(as.integer(x$ref_by), big.mark = ",")),
             collapse = ", "), "\n", sep = "")

@@ -73,3 +73,18 @@ test_that("a curve belongs to a pair of ancestries, and rescaling warns across a
   expect_warning(adm_rescale(adm_curve("AFR", caller = "FLARE"), eps0_to = 6e-3), "rescaling by")
   expect_silent(adm_rescale(adm_curve("AFR", caller = "FLARE"), eps0_to = 1e-3))
 })
+
+test_that("adm_eps0(background=) restricts the reference group to that ancestry", {
+  set.seed(3); n <- 3000
+  Q <- data.frame(AFR = c(runif(300, 0, .8), rep(0, n - 300)))
+  Q$EUR <- c(1 - Q$AFR[1:300], rep(1, 1350), rep(0, n - 1650))
+  Q$SAS <- 1 - Q$AFR - Q$EUR
+  dose <- 2 * (Q$AFR + ifelse(Q$SAS > 0.99, 6e-3, 6e-4) * abs(rnorm(n)))
+  any <- adm_eps0(Q, dose, focal = "AFR")
+  eur <- adm_eps0(Q, dose, focal = "AFR", background = "EUR")
+  sas <- adm_eps0(Q, dose, focal = "AFR", background = "SAS")
+  expect_equal(eur$n_ref + sas$n_ref, any$n_ref)       # the two backgrounds partition the reference group
+  expect_gt(sas$eps0, 5 * eur$eps0)                     # and they measure different noise floors
+  expect_identical(eur$background, "EUR")
+  expect_error(adm_eps0(Q, dose, focal = "AFR", background = "AFR"), "non-focal")
+})

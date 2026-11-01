@@ -10,7 +10,8 @@ adm_eps0(
   focal,
   pure_cut = 0.99,
   scale_2 = TRUE,
-  min_ref = 50L
+  min_ref = 50L,
+  background = NULL
 )
 }
 \arguments{
@@ -28,6 +29,13 @@ ancestry dosage on a 0-2 scale (or 0-1; see `scale_2`). Same order as `global_Q`
 proportion. Set `FALSE` if you already pass proportions.}
 
 \item{min_ref}{Error if the reference group is smaller than this.}
+
+\item{background}{Optional: name a single non-focal ancestry and the reference group becomes the
+individuals near-pure in *that* ancestry alone. Reliability belongs to a pair of ancestries, not
+to one (see [adm_curve()]), so an `eps0` meant to calibrate a particular background curve has to
+be measured against that background. With the default `NULL` the reference is near-pure in any
+non-focal ancestry, which in most cohorts means whichever is commonest -- fine when one curve is
+in use, wrong when the curve is background-specific.}
 }
 \value{
 An object of class `admit_eps0`: `eps0`, the number and composition of the reference

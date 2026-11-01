@@ -1,3 +1,10 @@
+# ADMIT 0.2.1
+
+* `adm_eps0()` gains `background`: restrict the reference group to individuals near-pure in one named
+  ancestry. `eps0` and the curve must be measured against the same background -- a reference group that is
+  mostly European measures a European-background noise floor, and pairing it with an African-background curve
+  calibrates one pairing with the other's error. Default behaviour is unchanged.
+
 # ADMIT 0.2.0
 
 * FLARE curves. `adm_curve()` gains `caller` (`"RFMix"`, `"FLARE"`) and `background`. The FLARE curves were

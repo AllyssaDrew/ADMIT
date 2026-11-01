@@ -99,6 +99,10 @@ adm_rescale <- function(curve, eps0_from = NULL, eps0_to) {
             "reliability where q is large. Measured example: the AFR curve rescaled to the eps0 of South ",
             "Asian ancestry on a European background reports 0.94 at q = 0.6 where the measured value is ",
             "0.81, because that pairing plateaus at 0.84 and no rescale can lower a plateau. ",
+            "The ratio is only a trigger; what matters is whether the two ancestries are comparably ",
+            "differentiated from the background. Across six European backgrounds spanning a 40-fold range of ",
+            "eps0 the African gain stays at 0.97-0.98, so rescaling within that family is safe, while the ",
+            "South Asian gain falls from 0.92 to 0.71 over the same range. ",
             "Calibrate directly (adm_simulate) if the window matters.", call. = FALSE)
   curve$q_hat <- curve$q_hat * r
   attr(curve, "rescaled_by") <- r
