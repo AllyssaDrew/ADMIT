@@ -11,7 +11,8 @@ adm_threshold(
   lambda = 1,
   ncp_target = 25,
   cuts = NULL,
-  upper = 1
+  upper = 1,
+  plateau_tol = 0.02
 )
 }
 \arguments{
@@ -32,9 +33,13 @@ detection optimum does not.}
 \item{cuts}{Candidate cuts; default a log grid.}
 
 \item{upper}{Upper cut.}
+
+\item{plateau_tol}{Cuts whose efficiency is within this of the optimum form the plateau: the set the power
+criterion cannot tell apart. Default 0.02, the scale over which the efficiency curve is flat in practice.}
 }
 \value{
-An object of class `admit_threshold`.
+An object of class `admit_threshold`: the full table, the detection and estimation optima, and
+  `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them.
 }
 \description{
 Returns the cut that maximises detection power and the cut that minimises the mean squared error

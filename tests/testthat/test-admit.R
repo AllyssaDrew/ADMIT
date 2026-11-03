@@ -88,3 +88,17 @@ test_that("adm_eps0(background=) restricts the reference group to that ancestry"
   expect_identical(eur$background, "EUR")
   expect_error(adm_eps0(Q, dose, focal = "AFR", background = "AFR"), "non-focal")
 })
+
+test_that("adm_threshold reports a plateau that contains the optimum and ends at a real cut", {
+  set.seed(11)
+  q <- c(runif(400, 0, .9), abs(rnorm(6000, 0, 2e-3)))
+  th <- adm_threshold(q, curve = adm_curve("AFR"))
+  expect_length(th$plateau, 2L)
+  expect_lte(th$plateau[1], th$detection$cut)
+  expect_gte(th$plateau[2], th$detection$cut)
+  expect_equal(th$conservative$cut, th$plateau[2])
+  expect_gte(th$conservative$eff, th$detection$eff - th$plateau_tol)   # free, by definition of the plateau
+  expect_lte(th$conservative$n, th$detection$n)                        # and it is the tighter end
+  wide <- adm_threshold(q, curve = adm_curve("AFR"), plateau_tol = 0.2)
+  expect_gte(diff(wide$plateau), diff(th$plateau))                     # a looser tolerance cannot narrow it
+})

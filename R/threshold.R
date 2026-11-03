@@ -81,15 +81,18 @@ adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 
 #' @param cuts Candidate cuts; default a log grid.
 #' @param curve A measured reliability curve from [adm_curve()] or [adm_rescale()], or the string
 #'   `"AFR"` / `"SAS"`. Strongly preferred over the closed form; see [adm_curve()].
+#' @param plateau_tol Cuts whose efficiency is within this of the optimum form the plateau: the set the power
+#'   criterion cannot tell apart. Default 0.02, the scale over which the efficiency curve is flat in practice.
 #' @param upper Upper cut.
-#' @return An object of class `admit_threshold`.
+#' @return An object of class `admit_threshold`: the full table, the detection and estimation optima, and
+#'   `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them.
 #' @examples
 #' set.seed(1)
 #' q <- c(runif(300, 0, .9), abs(rnorm(5000, 0, 1.3e-3)))
 #' adm_threshold(q, eps0 = 1.4e-3)
 #' @export
 adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_target = 25,
-                          cuts = NULL, upper = 1) {
+                          cuts = NULL, upper = 1, plateau_tol = 0.02) {
   e <- eps0
   floor_q <- NULL
   if (inherits(eps0, "admit_eps0")) { floor_q <- eps0$q_hat_ref; e <- eps0$eps0 }
@@ -126,9 +129,19 @@ adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_targ
     tab$admits_unadmixed <- vapply(tab$cut, function(c0) mean(floor_q > c0), 0)
   }
 
+  # The plateau. Reporting one cut invites the reader to think it is special; over a wide range of cuts the
+  # efficiency barely moves, and hiding that hides the fact that the choice is still open. The plateau is every
+  # cut whose efficiency is within `plateau_tol` of the optimum -- the set power cannot tell apart. Its upper
+  # end is the tightest cut power still treats as free, which matters because the individuals it drops are the
+  # ones whose calls carry the most error; whether to take it is a decision this function does not make.
+  keep <- tab$eff >= tab$eff[i_det] - plateau_tol
+  plat <- range(tab$cut[keep])
+  i_cons <- which(tab$cut == max(tab$cut[keep]))[1]
+
   structure(list(
     table = tab, eps0 = e, lambda = lambda, ncp_target = ncp_target,
     detection = tab[i_det, ], estimation = tab[i_est, ],
+    plateau = plat, plateau_tol = plateau_tol, conservative = tab[i_cons, ],
     qstar = if (is.null(e)) NA_real_ else e / 2, n_total = sum(is.finite(q_hat)),
     mode = if (is.null(curve)) "one-parameter closed form" else "measured curve",
     has_floor = !is.null(floor_q), floor_q = floor_q
@@ -146,6 +159,16 @@ print.admit_threshold <- function(x, ...) {
               s$cut, s$eff, format(s$n, big.mark = ",")))
   cat(sprintf("\n  recommended window   %.3g to %.3g   (anything inside is within reach of both)\n",
               lo, hi))
+  if (!is.null(x$plateau)) {
+    cn <- x$conservative
+    cat(sprintf("\n  plateau              %.3g to %.3g   (efficiency within %.2f of the optimum)\n",
+                x$plateau[1], x$plateau[2], x$plateau_tol))
+    cat(sprintf("  conservative end     %-9.3g  efficiency %.3f   keeps %s\n",
+                cn$cut, cn$eff, format(cn$n, big.mark = ",")))
+    cat("  Power cannot separate cuts inside the plateau. The conservative end costs at most\n")
+    cat(sprintf("  %.2f of efficiency and drops %s individuals whose calls are least reliable.\n",
+                x$plateau_tol, format(d$n - cn$n, big.mark = ",")))
+  }
   if (x$has_floor) {
     f <- function(c0) mean(x$floor_q > c0)
     cat(sprintf("\n  unadmixed individuals admitted: %.1f%% at the detection cut\n", 100 * f(d$cut)))
