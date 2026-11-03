@@ -169,11 +169,19 @@ print.admit_threshold <- function(x, ...) {
   if (!is.null(x$plateau)) {
     cn <- x$conservative
     ce <- x$plateau_censored %||% c(lo = FALSE, hi = FALSE)
-    cat(sprintf("\n  plateau              %s%.3g to %.3g%s   (efficiency within %.2f of the optimum)\n",
-                if (ce[["lo"]]) "<=" else "", x$plateau[1], x$plateau[2],
-                if (ce[["hi"]]) "+" else "", x$plateau_tol))
-    if (any(ce)) cat(sprintf("  %s end is the search grid's, not a measured boundary -- pass `cuts` to look further.\n",
-                             if (all(ce)) "Each" else if (ce[["lo"]]) "The lower" else "The upper"))
+    # A censored end is NOT printed as a number with a qualifier -- "<=1e-05 to 0.032" still reads as a range
+    # someone measured, and gets quoted that way. Say what was actually established instead.
+    if (!any(ce)) {
+      cat(sprintf("\n  plateau              %.3g to %.3g   (efficiency within %.2f of the optimum)\n",
+                  x$plateau[1], x$plateau[2], x$plateau_tol))
+    } else {
+      cat(sprintf("\n  plateau              efficiency stays within %.2f of the optimum for every cut from\n",
+                  x$plateau_tol))
+      cat(sprintf("                       %.3g, the smallest evaluated, up to %.3g%s\n", x$plateau[1],
+                  x$plateau[2], if (ce[["hi"]]) ", the largest evaluated" else ""))
+      cat(sprintf("                       no %s bound within the evaluated range -- pass `cuts` to look further\n",
+                  if (all(ce)) "lower or upper" else if (ce[["lo"]]) "lower" else "upper"))
+    }
     cat(sprintf("  conservative end     %-9.3g  efficiency %.3f   keeps %s\n",
                 cn$cut, cn$eff, format(cn$n, big.mark = ",")))
     cat("  Power cannot separate cuts inside the plateau. The conservative end costs at most\n")
