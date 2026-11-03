@@ -5,13 +5,13 @@
 \title{Reliability curves measured against known truth}
 \usage{
 adm_curve(
-  focal = c("AFR", "SAS"),
+  focal = c("AFR", "SAS", "AMR"),
   caller = c("RFMix", "FLARE"),
   background = c("European", "African")
 )
 }
 \arguments{
-\item{focal}{`"AFR"` or `"SAS"`.}
+\item{focal}{`"AFR"`, `"SAS"` or `"AMR"`.}
 
 \item{caller}{`"RFMix"` (default) or `"FLARE"`.}
 
@@ -36,6 +36,18 @@ Two callers are shipped.
   16,000 mosaics, founders held out in five rotating folds with their 1000 Genomes relatives removed,
   q covering the whole 0-1 range, validated against the real 52,639-participant UK Biobank cohort
   run through the same FLARE setup.
+
+  The American curves come from a third arm, 8,000 mosaics, and are shipped WITHOUT an `eps0`, so
+  [adm_rescale()] refuses them. `adm_eps0()`'s reference rule keeps individuals who are more than 99% of one
+  non-focal ancestry, and none of that arm's truly-unadmixed individuals qualify, against 0.7% of All of Us
+  participants and 9.1% of the African arm's. Two numbers obtained by selecting to incomparable depths
+  cannot be divided to give a rescale factor. Use them as measured.
+
+  Only the Indigenous-American estimand is shipped. A second one was built, taking the whole AMR reference
+  class as truth -- mostly admixed Latin American samples carrying about half European ancestry -- and its
+  reliability FALLS as true ancestry rises, 0.83 at q = 0.05 down to 0.40 at 0.39, because a Latino founder's
+  European segments count as American truth and are then correctly called European. That measures the
+  reference class's admixture, not the caller, so it is not shipped.
 
   **A curve belongs to a pair of ancestries, not to one.** Reliability depends on what the rest of the
   genome is, because the caller has to tell the focal ancestry apart from it. South Asian ancestry on an

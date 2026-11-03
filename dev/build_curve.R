@@ -23,6 +23,16 @@ SB <- fread(file.path(S, "data_aou/final_sas_by_background.tsv"))
 SB[, `:=`(focal = "SAS", caller = "FLARE", background = bg)][, bg := NULL]
 G <- fread(file.path(S, "data_aou/final_individuals.tsv"))
 
+## ---- the American curves (arm C) ----
+## Only the Indigenous-American estimand is shipped. The other one built, AMR_PANEL, takes the whole AMR
+## reference class as truth -- mostly admixed Latin American samples carrying about half European ancestry --
+## and its reliability FALLS as true ancestry rises (0.83 at q = 0.05 down to 0.40 at 0.39), because a Latino
+## founder's European segments are counted as American truth and then correctly called European. That is an
+## incoherent estimand, not a measurement of the caller, so it is documented and not shipped.
+AM <- fread(file.path(S, "data_aou3/amr_curves.tsv"))[focal == "AMR_NAM"]
+AM[, `:=`(focal = "AMR", caller = "FLARE",
+          background = fifelse(background == "AFR", "African", "European"))]
+
 ## eps0 for each curve, computed exactly as adm_eps0() does on real data: the mean called focal ancestry among
 ## individuals whose largest called NON-focal ancestry exceeds 0.99. The unselected mean over all q = 0 individuals
 ## is recorded alongside, because the two differ and only the first is comparable with adm_eps0().
@@ -42,8 +52,16 @@ print(E)
 adm_curves <- as.data.frame(rbind(
   RF[, .(focal, caller, background, q_hat, a, w, v, n, rho)],
   FL[, .(focal, caller, background, q_hat, a, w, v, n, rho)],
-  SB[, .(focal, caller, background, q_hat, a, w, v, n, rho)]))
-attr(adm_curves, "eps0") <- setNames(E$eps0, paste(E$caller, E$focal, E$background, sep = "|"))
+  SB[, .(focal, caller, background, q_hat, a, w, v, n, rho)],
+  AM[, .(focal, caller, background, q_hat, a, w, v, n, rho)]))
+eps <- setNames(E$eps0, paste(E$caller, E$focal, E$background, sep = "|"))
+## The American curves carry NO eps0, deliberately. adm_eps0's reference rule keeps individuals who are >99% of
+## one non-focal ancestry; in this simulation NONE of the truly-pure American-focal individuals qualify, against
+## 0.7% in All of Us and 9.1% for the African arm. Two numbers obtained by selecting to incomparable depths
+## cannot be divided to give a rescale factor -- doing so would compress this curve 23-fold, which is the same
+## error that put the American window at a reliability of zero in the first place. Use these curves as measured.
+eps[c("FLARE|AMR|European", "FLARE|AMR|African")] <- NA_real_
+attr(adm_curves, "eps0") <- eps
 attr(adm_curves, "source") <- paste(
   "RFMix 2 and FLARE 0.6.0 against HGDP+1kGP references, scored on genome-wide mosaics of held-out founders.",
   "RFMix: the 5-way 446-sample reference used in UK Biobank, 3,600 mosaics per focal ancestry.",

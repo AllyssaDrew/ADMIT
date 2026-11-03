@@ -6,7 +6,7 @@
 #' 0.59 where the measured value is 0.15) and places the optimum about twofold too tight. So the default is
 #' not a formula, it is a measured curve.
 #'
-#' @param focal `"AFR"` or `"SAS"`.
+#' @param focal `"AFR"`, `"SAS"` or `"AMR"`.
 #' @param caller `"RFMix"` (default) or `"FLARE"`.
 #' @param background the ancestry the rest of the genome comes from: `"European"` (default) or,
 #'   for South Asian ancestry called by FLARE, `"African"`.
@@ -19,6 +19,18 @@
 #'   q covering the whole 0-1 range, validated against the real 52,639-participant UK Biobank cohort
 #'   run through the same FLARE setup.
 #'
+#'   The American curves come from a third arm, 8,000 mosaics, and are shipped WITHOUT an `eps0`, so
+#'   [adm_rescale()] refuses them. `adm_eps0()`'s reference rule keeps individuals who are more than 99% of one
+#'   non-focal ancestry, and none of that arm's truly-unadmixed individuals qualify, against 0.7% of All of Us
+#'   participants and 9.1% of the African arm's. Two numbers obtained by selecting to incomparable depths
+#'   cannot be divided to give a rescale factor. Use them as measured.
+#'
+#'   Only the Indigenous-American estimand is shipped. A second one was built, taking the whole AMR reference
+#'   class as truth -- mostly admixed Latin American samples carrying about half European ancestry -- and its
+#'   reliability FALLS as true ancestry rises, 0.83 at q = 0.05 down to 0.40 at 0.39, because a Latino founder's
+#'   European segments count as American truth and are then correctly called European. That measures the
+#'   reference class's admixture, not the caller, so it is not shipped.
+#'
 #'   **A curve belongs to a pair of ancestries, not to one.** Reliability depends on what the rest of the
 #'   genome is, because the caller has to tell the focal ancestry apart from it. South Asian ancestry on an
 #'   African background is recovered almost perfectly (reliability 0.98 at q = 0.01); the same ancestry on a
@@ -30,7 +42,7 @@
 #'   Each curve carries the `eps0` of the simulation it was measured on, computed the way [adm_eps0()]
 #'   computes it on real data, which is what [adm_rescale()] scales from.
 #' @export
-adm_curve <- function(focal = c("AFR", "SAS"), caller = c("RFMix", "FLARE"),
+adm_curve <- function(focal = c("AFR", "SAS", "AMR"), caller = c("RFMix", "FLARE"),
                       background = c("European", "African")) {
   focal <- match.arg(focal); caller <- match.arg(caller); background <- match.arg(background)
   key <- paste(caller, focal, background, sep = "|")
@@ -89,6 +101,10 @@ adm_rescale <- function(curve, eps0_from = NULL, eps0_to) {
     if (is.null(k) || !k %in% names(attr(adm_curves, "eps0")))
       stop("`eps0_from` is needed: this curve is not one of the shipped curves")
     eps0_from <- attr(adm_curves, "eps0")[[k]]
+    if (is.na(eps0_from))
+      stop("this curve carries no eps0 and must be used as measured, not rescaled: the simulation it was ",
+           "measured on has no individuals meeting adm_eps0()'s reference rule, so there is no value on the ",
+           "same footing as the one you would rescale TO. Pass it straight to adm_threshold().", call. = FALSE)
   }
   if (!is.numeric(eps0_from) || !is.numeric(eps0_to) || eps0_from <= 0 || eps0_to <= 0)
     stop("`eps0_from` and `eps0_to` must be positive numbers")

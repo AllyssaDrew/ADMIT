@@ -56,6 +56,7 @@ test_that("efficiency is bounded and monotone in the right places", {
 
 test_that("adm_rescale scales each shipped curve from its own simulation eps0", {
   k <- attr(ADMIT:::adm_curves, "eps0")
+  k <- k[!is.na(k)]                      # the American curves carry none on purpose; see their own test
   for (key in names(k)) {
     p <- strsplit(key, "|", fixed = TRUE)[[1]]                       # caller | focal | background
     cur <- adm_curve(p[2], caller = p[1], background = p[3])
@@ -101,4 +102,16 @@ test_that("adm_threshold reports a plateau that contains the optimum and ends at
   expect_lte(th$conservative$n, th$detection$n)                        # and it is the tighter end
   wide <- adm_threshold(q, curve = adm_curve("AFR"), plateau_tol = 0.2)
   expect_gte(diff(wide$plateau), diff(th$plateau))                     # a looser tolerance cannot narrow it
+})
+
+test_that("the American curves are shipped as measured and cannot be rescaled", {
+  eu <- adm_curve("AMR", caller = "FLARE", background = "European")
+  af <- adm_curve("AMR", caller = "FLARE", background = "African")
+  expect_gt(nrow(eu), 20); expect_gt(nrow(af), 20)
+  r <- function(cur, q) approx(log(cur$q_hat), cur$rho, xout = log(q), rule = 2)$y
+  expect_lt(r(eu, 0.002), 0.1)      # the window that was in use, 0.00076, sits where reliability is ~0
+  expect_gt(r(eu, 0.1), 0.8)
+  expect_gt(r(af, 0.03), r(eu, 0.03))        # American is easier to call against an African background
+  expect_error(adm_rescale(eu, eps0_to = 1.33e-4), "used as measured")
+  expect_error(adm_rescale(af, eps0_to = 1.33e-4), "used as measured")
 })
