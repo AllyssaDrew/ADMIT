@@ -85,7 +85,9 @@ adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 
 #'   criterion cannot tell apart. Default 0.02, the scale over which the efficiency curve is flat in practice.
 #' @param upper Upper cut.
 #' @return An object of class `admit_threshold`: the full table, the detection and estimation optima, and
-#'   `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them.
+#'   `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them -- and
+#'   `plateau_censored`, naming any end of that range that is the search grid's edge rather than a measured
+#'   boundary. On a cohort whose participants reach very low `q_hat`, the lower end usually is.
 #' @examples
 #' set.seed(1)
 #' q <- c(runif(300, 0, .9), abs(rnorm(5000, 0, 1.3e-3)))
@@ -136,12 +138,17 @@ adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_targ
   # ones whose calls carry the most error; whether to take it is a decision this function does not make.
   keep <- tab$eff >= tab$eff[i_det] - plateau_tol
   plat <- range(tab$cut[keep])
+  # A plateau that reaches an end of the search grid is CENSORED there: the number printed would be the grid's
+  # edge, not a boundary anyone measured, and it looks like a measurement. Record which ends are real.
+  plat_censored <- c(lo = isTRUE(all.equal(plat[1], min(tab$cut))),
+                     hi = isTRUE(all.equal(plat[2], max(tab$cut))))
   i_cons <- which(tab$cut == max(tab$cut[keep]))[1]
 
   structure(list(
     table = tab, eps0 = e, lambda = lambda, ncp_target = ncp_target,
     detection = tab[i_det, ], estimation = tab[i_est, ],
-    plateau = plat, plateau_tol = plateau_tol, conservative = tab[i_cons, ],
+    plateau = plat, plateau_tol = plateau_tol, plateau_censored = plat_censored,
+    conservative = tab[i_cons, ],
     qstar = if (is.null(e)) NA_real_ else e / 2, n_total = sum(is.finite(q_hat)),
     mode = if (is.null(curve)) "one-parameter closed form" else "measured curve",
     has_floor = !is.null(floor_q), floor_q = floor_q
@@ -161,8 +168,12 @@ print.admit_threshold <- function(x, ...) {
               lo, hi))
   if (!is.null(x$plateau)) {
     cn <- x$conservative
-    cat(sprintf("\n  plateau              %.3g to %.3g   (efficiency within %.2f of the optimum)\n",
-                x$plateau[1], x$plateau[2], x$plateau_tol))
+    ce <- x$plateau_censored %||% c(lo = FALSE, hi = FALSE)
+    cat(sprintf("\n  plateau              %s%.3g to %.3g%s   (efficiency within %.2f of the optimum)\n",
+                if (ce[["lo"]]) "<=" else "", x$plateau[1], x$plateau[2],
+                if (ce[["hi"]]) "+" else "", x$plateau_tol))
+    if (any(ce)) cat(sprintf("  %s end is the search grid's, not a measured boundary -- pass `cuts` to look further.\n",
+                             if (all(ce)) "Each" else if (ce[["lo"]]) "The lower" else "The upper"))
     cat(sprintf("  conservative end     %-9.3g  efficiency %.3f   keeps %s\n",
                 cn$cut, cn$eff, format(cn$n, big.mark = ",")))
     cat("  Power cannot separate cuts inside the plateau. The conservative end costs at most\n")

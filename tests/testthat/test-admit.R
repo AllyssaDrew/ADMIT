@@ -115,3 +115,12 @@ test_that("the American curves are shipped as measured and cannot be rescaled", 
   expect_error(adm_rescale(eu, eps0_to = 1.33e-4), "used as measured")
   expect_error(adm_rescale(af, eps0_to = 1.33e-4), "used as measured")
 })
+
+test_that("a plateau that reaches the grid's edge is marked censored", {
+  set.seed(4); q <- c(runif(400, 0, .9), abs(rnorm(6000, 0, 2e-3)))
+  wide <- adm_threshold(q, curve = adm_curve("AFR"))
+  expect_false(any(wide$plateau_censored))                       # the default grid is wide enough here
+  narrow <- adm_threshold(q, curve = adm_curve("AFR"), cuts = 10^seq(-2.6, -2.2, length.out = 20))
+  expect_true(all(narrow$plateau_censored))                      # this one cannot see either boundary
+  expect_output(print(narrow), "search grid")
+})

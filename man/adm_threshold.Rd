@@ -39,7 +39,9 @@ criterion cannot tell apart. Default 0.02, the scale over which the efficiency c
 }
 \value{
 An object of class `admit_threshold`: the full table, the detection and estimation optima, and
-  `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them.
+  `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them -- and
+  `plateau_censored`, naming any end of that range that is the search grid's edge rather than a measured
+  boundary. On a cohort whose participants reach very low `q_hat`, the lower end usually is.
 }
 \description{
 Returns the cut that maximises detection power and the cut that minimises the mean squared error
