@@ -122,5 +122,7 @@ test_that("a plateau that reaches the grid's edge is marked censored", {
   expect_false(any(wide$plateau_censored))                       # the default grid is wide enough here
   narrow <- adm_threshold(q, curve = adm_curve("AFR"), cuts = 10^seq(-2.6, -2.2, length.out = 20))
   expect_true(all(narrow$plateau_censored))                      # this one cannot see either boundary
-  expect_output(print(narrow), "search grid")
+  expect_output(print(narrow), "no lower or upper bound within the evaluated range")
+  expect_output(print(narrow), "smallest evaluated")
+  expect_false(grepl("plateau +[0-9]", paste(capture.output(print(narrow)), collapse = "\n")))
 })
