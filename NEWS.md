@@ -1,3 +1,15 @@
+# ADMIT 0.4.0
+
+* The two RFMix curves (`adm_curve("AFR")`, `adm_curve("SAS")`) are replaced. They now come from mosaics of gnomAD
+  individuals who are absent from the reference panel, on a north-west European background, called with the full
+  446-sample reference, and reliability is measured over RFMix windows, the unit an admixture scan tests. The
+  previous pair was measured with the founders removed from the reference, which raised the background false-call
+  rate to 2.3 times the value seen in UK Biobank, and over genotyped sites. On the UK Biobank distribution of
+  African ancestry the detection optimum moves from 0.38% to 0.20% and the efficiency there from 0.840 to 0.893;
+  for South Asian ancestry from 0.54% to 0.84% (0.446 to 0.494). Reference `eps0`: AFR 5.12e-4, SAS 3.31e-3.
+* A planted-truth simulation (effect on true local ancestry, scan on calls, false calls placed as in real data)
+  agrees with `adm_efficiency()` at eight cuts: detection within 0.009, attenuation within 0.008.
+
 # ADMIT 0.3.2
 
 * A plateau that reaches an end of the search grid is now marked as censored there (`plateau_censored`), and

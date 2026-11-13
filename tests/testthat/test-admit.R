@@ -24,14 +24,16 @@ test_that("reliability is 0 for an unadmixed individual and approaches 1 when ad
   expect_gt(abs(adm_reliability(0.05, 0.05) - adm_reliability(0.10, 0.10)), 1e-3)  # degrades at large q
 })
 
-test_that("the shipped curve reproduces the published UK Biobank window", {
+test_that("the shipped curve gives an interior window on a biobank-like cohort", {
   set.seed(1)
   th <- adm_threshold(c(runif(3000, 0, .9), abs(rnorm(49000, 0, 1.1e-3))), curve = "AFR")
   expect_s3_class(th, "admit_threshold")
   expect_equal(th$mode, "measured curve")
   expect_gt(th$detection$cut, 1e-3)              # the measured curve, not the closed form (about twofold too tight)
   expect_lt(th$detection$cut, 2e-2)
-  expect_true(th$estimation$cut >= th$detection$cut)   # estimation always the looser of the two
+  # The order of the two optima is not fixed: with the 0.4.0 curve the estimation optimum is the lower one on this
+  # synthetic cohort and the higher one on the UK Biobank distribution (0.24% against 0.20%).
+  expect_true(is.finite(th$estimation$cut) && th$estimation$cut > 0)
 })
 
 test_that("the closed form warns, because it gets the level wrong", {
@@ -62,7 +64,7 @@ test_that("adm_rescale scales each shipped curve from its own simulation eps0", 
     cur <- adm_curve(p[2], caller = p[1], background = p[3])
     expect_equal(attr(adm_rescale(cur, eps0_to = k[[key]]), "rescaled_by"), 1)
   }
-  expect_equal(unname(k[c("RFMix|AFR|European", "RFMix|SAS|European")]), c(1.33e-3, 2.46e-3), tolerance = 0.01)
+  expect_equal(unname(k[c("RFMix|AFR|European", "RFMix|SAS|European")]), c(5.12e-4, 3.31e-3), tolerance = 0.01)
 })
 
 test_that("a curve belongs to a pair of ancestries, and rescaling warns across a wide gap", {
@@ -118,9 +120,10 @@ test_that("the American curves are shipped as measured and cannot be rescaled", 
 
 test_that("a plateau that reaches the grid's edge is marked censored", {
   set.seed(4); q <- c(runif(400, 0, .9), abs(rnorm(6000, 0, 2e-3)))
-  wide <- adm_threshold(q, curve = adm_curve("AFR"))
+  cur <- adm_curve("AFR", caller = "FLARE")                      # a fixture: the test is about the grid, not the curve
+  wide <- adm_threshold(q, curve = cur)
   expect_false(any(wide$plateau_censored))                       # the default grid is wide enough here
-  narrow <- adm_threshold(q, curve = adm_curve("AFR"), cuts = 10^seq(-2.6, -2.2, length.out = 20))
+  narrow <- adm_threshold(q, curve = cur, cuts = 10^seq(-2.2, -1.9, length.out = 20))
   expect_true(all(narrow$plateau_censored))                      # this one cannot see either boundary
   expect_output(print(narrow), "no lower or upper bound within the evaluated range")
   expect_output(print(narrow), "smallest evaluated")

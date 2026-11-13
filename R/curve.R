@@ -13,7 +13,9 @@
 #' @return Data frame of `q_hat`, `a`, `w`, `v`, `rho`, `n`.
 #' @details Two callers are shipped.
 #'   `RFMix` is RFMix 2 against the 5-way 446-sample HGDP+1kGP reference used in UK Biobank:
-#'   genome-wide held-out-founder mosaics, 3,600 per focal ancestry, single pulse T = 8 generations.
+#'   mosaics of gnomAD individuals absent from that reference, on a north-west European background (5,489 for
+#'   African and 5,563 for South Asian ancestry), single pulse T = 8 generations, reliability measured over RFMix
+#'   windows (since 0.4.0; earlier versions used 3,600 held-out-founder mosaics per ancestry and genotyped sites).
 #'   `FLARE` is FLARE 0.6.0 against a 3,201-sample 5-way reference matching the All of Us setup:
 #'   16,000 mosaics, founders held out in five rotating folds with their 1000 Genomes relatives removed,
 #'   q covering the whole 0-1 range, validated against the real 52,639-participant UK Biobank cohort

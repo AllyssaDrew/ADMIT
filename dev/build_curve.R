@@ -4,17 +4,16 @@ suppressPackageStartupMessages(library(data.table))
 S <- "/proj/xihaoli_lab/users/ganzeyu/UKB-admixture_mapping/local_ans_pipeline/Admixture_Mapping/Framework/AM52k/lai_sim"
 AN5 <- c("AFR", "EUR", "EAS", "AMR", "SAS")
 
-## ---- the RFMix pair, unchanged (holdout-founder simulation, data_gw) ----
-old <- rbindlist(lapply(Sys.glob(file.path(S, "data_gw/chr*/score_rfmix.tsv")), fread))
-SS <- c("n", "sC", "sT", "sCT", "sCC", "sTT"); old[, (SS) := lapply(.SD, as.numeric), .SDcols = SS]
-Go <- old[, .(q = q[1], qhat = sum(sC) / sum(2 * n), n = sum(n), sC = sum(sC), sT = sum(sT),
-              sCT = sum(sCT), sCC = sum(sCC), sTT = sum(sTT)), by = .(sample, focal)]
-Go[, `:=`(a = (sCT - sC * sT / n) / (n - 1), w = (sCC - sC^2 / n) / (n - 1), v = (sTT - sT^2 / n) / (n - 1))]
-br <- c(-Inf, 10^seq(-3.6, -0.3, length.out = 28), Inf)
-RF <- Go[is.finite(a) & is.finite(w) & is.finite(v), .(q_hat = median(qhat), a = mean(a), w = mean(w), v = mean(v), n = .N),
-         by = .(focal, b = cut(qhat, br))][n >= 15][, b := NULL][order(focal, q_hat)]
-RF[, `:=`(caller = "RFMix", background = "European", rho = a / w)]
-e_rf <- Go[q == 0, .(eps0 = mean(qhat)), by = focal]
+## ---- the RFMix pair (0.4.0): gnomAD-founder mosaics, reliability measured over RFMix windows ----
+## Source: Framework/AM52k/scripts/simT_build.R + curve_window_level.R -> lai_sim/data_gf/curves_window.tsv.
+## Mosaics of gnomAD HGDP+1kGP individuals who are not in the reference panel, north-west European background,
+## T = 8, called with the FULL 446-sample 5-way reference; per genome q_hat, a, w, v over 11,440 RFMix windows.
+## The pair shipped up to 0.3.2 (data_gw: founders removed from the reference, computed over genotyped sites)
+## had a background false-call rate 2.3 times the one measured in UK Biobank.
+RF <- fread(file.path(S, "data_gf/curves_window.tsv"))[order(focal, q_hat)]
+RF[, `:=`(caller = "RFMix", background = "European")]
+## eps0 by the adm_eps0() rule (mean called focal share among mosaics above 0.99 in another ancestry), data_gf/eps0.tsv
+e_rf <- fread(file.path(S, "data_gf/eps0.tsv"))[eur_src == "NWEUR", .(focal, eps0 = eps0_admit)]
 
 ## ---- the FLARE curves (AoU-style reference; arms A and B) ----
 FL <- fread(file.path(S, "data_aou/final_curves.tsv"))[cohort == "AoU" & focal == "AFR"]
@@ -64,7 +63,7 @@ eps[c("FLARE|AMR|European", "FLARE|AMR|African")] <- NA_real_
 attr(adm_curves, "eps0") <- eps
 attr(adm_curves, "source") <- paste(
   "RFMix 2 and FLARE 0.6.0 against HGDP+1kGP references, scored on genome-wide mosaics of held-out founders.",
-  "RFMix: the 5-way 446-sample reference used in UK Biobank, 3,600 mosaics per focal ancestry.",
+  "RFMix: the 5-way 446-sample reference used in UK Biobank; gnomAD-founder mosaics on a north-west European background (AFR 5,489, SAS 5,563), reliability over RFMix windows.",
   "FLARE: a 3,201-sample 5-way reference (AFR/AMR/EAS/EUR/SAS) matching the All of Us setup, 16,000 mosaics,",
   "founders held out in 5 rotating folds with their 1000 Genomes relatives removed, T = 8, q over the whole 0-1 range.",
   "Validated against the real 52,639-participant UK Biobank cohort run through the same FLARE setup.")
