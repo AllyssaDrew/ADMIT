@@ -12,7 +12,9 @@ adm_threshold(
   ncp_target = 25,
   cuts = NULL,
   upper = 1,
-  plateau_tol = 0.02
+  plateau_tol = 0.02,
+  call_var = NULL,
+  call_var_from = 0.3
 )
 }
 \arguments{
@@ -36,6 +38,11 @@ detection optimum does not.}
 
 \item{plateau_tol}{Cuts whose efficiency is within this of the optimum form the plateau: the set the power
 criterion cannot tell apart. Default 0.02, the scale over which the efficiency curve is flat in practice.}
+
+\item{call_var, call_var_from}{Observed variance of each individual's called dosage along the genome, and
+the folded global ancestry above which it replaces the variance the curve assumes; see
+[adm_efficiency()]. It changes the predicted efficiency and attenuation; it moves an optimum only if
+that optimum lies above `call_var_from`.}
 }
 \value{
 An object of class `admit_threshold`: the full table, the detection and estimation optima, and

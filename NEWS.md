@@ -1,3 +1,13 @@
+# ADMIT 0.4.1
+
+* `adm_efficiency()` and `adm_threshold()` take `call_var`, the variance of each individual's called dosage along
+  the genome. The curves assume that individuals with the same `q_hat` vary along the genome alike. Above a global
+  ancestry of 30% that overstates the variance of real calls (by 21% to 38% for RFMix in UK Biobank), mostly
+  because a person with one parent of each ancestry carries one focal copy at every position and so informs no
+  scan. With `call_var`, each individual above `call_var_from` (default 0.3) is weighted by the variance observed
+  in place of the variance assumed; reliability is unchanged. On UK Biobank African ancestry the optimum does not
+  move; the predicted efficiency and attenuation fall. Without `call_var` every result is as in 0.4.0.
+
 # ADMIT 0.4.0
 
 * The two RFMix curves (`adm_curve("AFR")`, `adm_curve("SAS")`) are replaced. They now come from mosaics of gnomAD

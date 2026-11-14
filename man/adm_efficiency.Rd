@@ -10,7 +10,9 @@ adm_efficiency(
   cuts = NULL,
   lambda = 1,
   upper = 1,
-  curve = NULL
+  curve = NULL,
+  call_var = NULL,
+  call_var_from = 0.3
 )
 }
 \arguments{
@@ -27,6 +29,18 @@ truth. A cut on the estimate attains the same efficiency as a cut on the unobser
 
 \item{curve}{A measured reliability curve from [adm_curve()] or [adm_rescale()]. Supplying one
 replaces the closed form, which gets the scaling right and the level wrong.}
+
+\item{call_var}{Optional. The variance of each individual's called focal dosage (0, 1 or 2 copies) along
+the genome, one value per individual, in the order of `q_hat`. The curve assumes that individuals with
+the same `q_hat` vary along the genome alike. That fails at high global ancestry: a person with one
+parent of each ancestry has `q_hat` near 0.5 and one focal copy at every position, so contributes
+nothing to a scan, yet the curve credits them with the most. When `call_var` is given, the signal,
+variance and error-free information of each individual whose folded `q_hat` exceeds `call_var_from`
+are multiplied by `call_var` over the variance the curve assumes; reliability is left as it is.
+Individuals with a missing `call_var` are left uncorrected.}
+
+\item{call_var_from}{Folded global ancestry above which `call_var` is used. Default 0.3, the share below
+which the variance assumed by the supplied curves was checked against real calls.}
 }
 \value{
 Data frame: `cut`, `n` retained, `eff`, and `R`, the attenuation factor `sum a / sum w`.

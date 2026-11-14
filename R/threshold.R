@@ -32,6 +32,25 @@ adm_reliability <- function(q, eps0, lambda = 1) {
   list(a = lambda * v, w = lambda^2 * v + eps0, v = v, q = q)
 }
 
+# `call_var` must line up with `q_hat`; it is subset to the finite `q_hat` exactly as `q_hat` is.
+.check_call_var <- function(call_var, q_hat) {
+  if (is.null(call_var)) return(NULL)
+  if (!is.numeric(call_var) || length(call_var) != length(q_hat))
+    stop("`call_var` must be numeric with one value per element of `q_hat`")
+  if (any(call_var < 0, na.rm = TRUE)) stop("`call_var` is a variance and cannot be negative")
+  call_var[is.finite(q_hat)]
+}
+
+# Replace the variance the curve assumes by the variance observed, above `from` only. a, w and v scale
+# together, so each individual's reliability a / w is unchanged and only their weight moves.
+.use_call_var <- function(x, q, call_var, from) {
+  if (is.null(call_var)) return(x)
+  k <- q > from & is.finite(call_var) & x$w > 0
+  sc <- rep(1, length(q)); sc[k] <- call_var[k] / x$w[k]
+  x$a <- x$a * sc; x$w <- x$w * sc; x$v <- x$v * sc
+  x
+}
+
 #' Efficiency of an inclusion window
 #'
 #' The non-centrality parameter of the scan is `(sum a)^2 / sum w` over the included individuals,
@@ -46,14 +65,27 @@ adm_reliability <- function(q, eps0, lambda = 1) {
 #' @param upper Upper cut, applied symmetrically as `q_hat < upper`.
 #' @param curve A measured reliability curve from [adm_curve()] or [adm_rescale()]. Supplying one
 #'   replaces the closed form, which gets the scaling right and the level wrong.
+#' @param call_var Optional. The variance of each individual's called focal dosage (0, 1 or 2 copies) along
+#'   the genome, one value per individual, in the order of `q_hat`. The curve assumes that individuals with
+#'   the same `q_hat` vary along the genome alike. That fails at high global ancestry: a person with one
+#'   parent of each ancestry has `q_hat` near 0.5 and one focal copy at every position, so contributes
+#'   nothing to a scan, yet the curve credits them with the most. When `call_var` is given, the signal,
+#'   variance and error-free information of each individual whose folded `q_hat` exceeds `call_var_from`
+#'   are multiplied by `call_var` over the variance the curve assumes; reliability is left as it is.
+#'   Individuals with a missing `call_var` are left uncorrected.
+#' @param call_var_from Folded global ancestry above which `call_var` is used. Default 0.3, the share below
+#'   which the variance assumed by the supplied curves was checked against real calls.
 #' @return Data frame: `cut`, `n` retained, `eff`, and `R`, the attenuation factor `sum a / sum w`.
 #' @export
-adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 1, curve = NULL) {
+adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 1, curve = NULL,
+                           call_var = NULL, call_var_from = 0.3) {
   if (is.null(curve) && is.null(eps0)) stop('give either `eps0` (closed form) or `curve` (measured)')
+  call_var <- .check_call_var(call_var, q_hat)
   q_hat <- q_hat[is.finite(q_hat)]
   q <- pmin(q_hat, 1 - q_hat)                       # fold: 0.98 focal is as informative as 0.02
   if (is.null(cuts)) cuts <- 10^seq(log10(max(min(q[q > 0]), 1e-5)), log10(0.2), length.out = 120)
   x <- if (is.null(curve)) .aw(q, eps0, lambda) else .aw_curve(q, curve)
+  x <- .use_call_var(x, q, call_var, call_var_from)
   Imax <- sum(x$v)                                  # error-free, whole cohort
   out <- lapply(cuts, function(c0) {
     s <- q > c0 & q_hat < upper                     # ... but the CUT is applied to the estimate
@@ -84,6 +116,10 @@ adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 
 #' @param plateau_tol Cuts whose efficiency is within this of the optimum form the plateau: the set the power
 #'   criterion cannot tell apart. Default 0.02, the scale over which the efficiency curve is flat in practice.
 #' @param upper Upper cut.
+#' @param call_var,call_var_from Observed variance of each individual's called dosage along the genome, and
+#'   the folded global ancestry above which it replaces the variance the curve assumes; see
+#'   [adm_efficiency()]. It changes the predicted efficiency and attenuation; it moves an optimum only if
+#'   that optimum lies above `call_var_from`.
 #' @return An object of class `admit_threshold`: the full table, the detection and estimation optima, and
 #'   `plateau` / `conservative` -- the range of cuts power cannot separate and the tightest of them -- and
 #'   `plateau_censored`, naming any end of that range that is the search grid's edge rather than a measured
@@ -94,7 +130,8 @@ adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 
 #' adm_threshold(q, eps0 = 1.4e-3)
 #' @export
 adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_target = 25,
-                          cuts = NULL, upper = 1, plateau_tol = 0.02) {
+                          cuts = NULL, upper = 1, plateau_tol = 0.02,
+                          call_var = NULL, call_var_from = 0.3) {
   e <- eps0
   floor_q <- NULL
   if (inherits(eps0, "admit_eps0")) { floor_q <- eps0$q_hat_ref; e <- eps0$eps0 }
@@ -106,7 +143,8 @@ adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_targ
             "its level: against known truth it sits about 2x too tight and overstates efficiency ",
             "by ~0.13. Prefer curve = 'AFR' / 'SAS', or calibrate your own.", call. = FALSE)
   }
-  tab <- adm_efficiency(q_hat, e, cuts = cuts, lambda = lambda, upper = upper, curve = curve)
+  tab <- adm_efficiency(q_hat, e, cuts = cuts, lambda = lambda, upper = upper, curve = curve,
+                        call_var = call_var, call_var_from = call_var_from)
   tab <- tab[tab$n > 0, , drop = FALSE]
   if (!nrow(tab)) stop("no cut retains anyone")
 
@@ -116,6 +154,7 @@ adm_threshold <- function(q_hat, eps0 = NULL, curve = NULL, lambda = 1, ncp_targ
 
   qf <- pmin(q_hat, 1 - q_hat); qf <- qf[is.finite(qf)]
   x  <- if (is.null(curve)) .aw(qf, e, lambda) else .aw_curve(qf, curve)
+  x  <- .use_call_var(x, qf, .check_call_var(call_var, q_hat), call_var_from)
   Av <- vapply(tab$cut, function(c0) sum(x$a[qf > c0]), 0)
   Wv <- vapply(tab$cut, function(c0) sum(x$w[qf > c0]), 0)
   # NCP = (gamma^2/sigma^2) * A^2/W. Pin the unknown ratio by declaring the NCP the widest window

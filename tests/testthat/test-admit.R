@@ -129,3 +129,20 @@ test_that("a plateau that reaches the grid's edge is marked censored", {
   expect_output(print(narrow), "smallest evaluated")
   expect_false(grepl("plateau +[0-9]", paste(capture.output(print(narrow)), collapse = "\n")))
 })
+
+test_that("call_var replaces the variance assumed by the curve above call_var_from only", {
+  set.seed(5); q <- c(runif(300, 0.01, 0.29), runif(60, 0.4, 0.6), abs(rnorm(4000, 0, 2e-3)))
+  cur <- adm_curve("AFR"); x <- ADMIT:::.aw_curve(pmin(q, 1 - q), cur); cuts <- c(0.001, 0.01, 0.1)
+  e0 <- adm_efficiency(q, curve = cur, cuts = cuts)
+  expect_equal(adm_efficiency(q, curve = cur, cuts = cuts, call_var = x$w), e0)          # the curve's own variance: no change
+  v <- x$w; v[q < 0.3] <- 0                                                              # below call_var_from it is ignored
+  expect_equal(adm_efficiency(q, curve = cur, cuts = cuts, call_var = v), e0)
+  v <- x$w; flat <- which(q > 0.45 & q < 0.55); v[flat] <- 0                             # one copy everywhere: no information
+  e1 <- adm_efficiency(q, curve = cur, cuts = cuts, call_var = v)
+  expect_equal(e1[, c("eff", "R")], adm_efficiency(q[-flat], curve = cur, cuts = cuts)[, c("eff", "R")])
+  v[1] <- NA; expect_silent(adm_efficiency(q, curve = cur, cuts = cuts, call_var = v))   # a missing value is left uncorrected
+  expect_error(adm_efficiency(q, curve = cur, call_var = v[-1]), "one value per element")
+  th0 <- adm_threshold(q, curve = cur); th1 <- adm_threshold(q, curve = cur, call_var = v)
+  expect_equal(th1$detection$cut, th0$detection$cut)                                     # the optimum lies below 0.3 and stays
+  expect_false(isTRUE(all.equal(th1$detection$eff, th0$detection$eff)))
+})
