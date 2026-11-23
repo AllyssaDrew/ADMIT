@@ -5,6 +5,6 @@ bibentry(
   title    = "ADMIT: ADMixture-mapping Inclusion Threshold",
   author   = person("Zeyu", "Gan"),
   year     = "2026",
-  note     = "R package version 0.1.0",
+  note     = "R package version 0.4.2",
   url      = "https://github.com/AllyssaDrew/ADMIT"
 )

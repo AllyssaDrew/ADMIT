@@ -146,3 +146,9 @@ test_that("call_var replaces the variance assumed by the curve above call_var_fr
   expect_equal(th1$detection$cut, th0$detection$cut)                                     # the optimum lies below 0.3 and stays
   expect_false(isTRUE(all.equal(th1$detection$eff, th0$detection$eff)))
 })
+
+test_that("adm_efficiency() takes a curve by name, like adm_threshold()", {
+  set.seed(7); q <- c(rep(0, 200), 10^runif(600, -4, -0.3))
+  expect_equal(adm_efficiency(q, curve = "AFR", cuts = c(0.002, 0.02)), adm_efficiency(q, curve = adm_curve("AFR"), cuts = c(0.002, 0.02)))
+  expect_equal(adm_efficiency(q, curve = "SAS", cuts = 0.01), adm_efficiency(q, curve = adm_curve("SAS"), cuts = 0.01))
+})

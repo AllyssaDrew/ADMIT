@@ -1,3 +1,16 @@
+# ADMIT 0.4.2
+
+* `adm_efficiency()` accepts a curve by name (`curve = "AFR"` or `"SAS"`), as `adm_threshold()` does and as the
+  vignette shows. Until now it needed the data frame from `adm_curve()` and stopped with an error on a name.
+* README and vignette now show the results of the curves shipped since 0.4.0. On UK Biobank African ancestry the
+  window is 0.0020 to 0.0024 (efficiency 0.893), not 0.0038 to 0.0057 (0.840); for South Asian ancestry 0.0084 to
+  0.025 (0.494). The seven shipped curves are listed with their caller, reference panel and number of genomes.
+* The section on moving a curve to another caller is rewritten. The two shipped curves for African ancestry were
+  measured with different reference panels and no longer coincide once rescaled (median difference 0.06, larger at
+  low global ancestry). Rescaling still recovers most of the efficiency: 0.908 against 0.914 from FLARE's own curve
+  and 0.855 without rescaling. The text no longer says that the rescaled curves agree to 0.005.
+* No change to any computed result.
+
 # ADMIT 0.4.1
 
 * `adm_efficiency()` and `adm_threshold()` take `call_var`, the variance of each individual's called dosage along

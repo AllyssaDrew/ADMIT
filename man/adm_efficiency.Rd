@@ -27,8 +27,8 @@ truth. A cut on the estimate attains the same efficiency as a cut on the unobser
 
 \item{upper}{Upper cut, applied symmetrically as `q_hat < upper`.}
 
-\item{curve}{A measured reliability curve from [adm_curve()] or [adm_rescale()]. Supplying one
-replaces the closed form, which gets the scaling right and the level wrong.}
+\item{curve}{A measured reliability curve from [adm_curve()] or [adm_rescale()], or the string
+`"AFR"` / `"SAS"`. Supplying one replaces the closed form, which gets the scaling right and the level wrong.}
 
 \item{call_var}{Optional. The variance of each individual's called focal dosage (0, 1 or 2 copies) along
 the genome, one value per individual, in the order of `q_hat`. The curve assumes that individuals with

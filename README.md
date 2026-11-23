@@ -47,16 +47,22 @@ plot(th)
 ```
 Inclusion window  [measured curve]
 
-  detection optimum    0.00382    efficiency 0.840   keeps 3,705
-  estimation optimum   0.00568    efficiency 0.833   keeps 2,321
+  detection optimum    0.00198    efficiency 0.893   keeps 7,438
+  estimation optimum   0.00241    efficiency 0.891   keeps 6,160
 
-  recommended window   0.00382 to 0.00568
+  recommended window   0.00198 to 0.00241   (anything inside is within reach of both)
+
+  plateau              0.000688 to 0.00382   (efficiency within 0.02 of the optimum)
+  conservative end     0.00382    efficiency 0.876   keeps 3,705
+  Power cannot separate cuts inside the plateau. The conservative end costs at most
+  0.02 of efficiency and drops 3,733 individuals whose calls are least reliable.
 ```
 
 The **detection optimum** maximizes the non-centrality of the admixture-mapping test; the
 **estimation optimum** minimizes the mean squared error of the effect estimate. Any cut between them
-serves both purposes, and the efficiency curve is flat near its maximum, so the window can be
-reported to one significant figure.
+serves both purposes. The efficiency curve is flat near its maximum: the **plateau** is the range of
+cuts within 0.02 of the optimum, and its upper end is the most conservative cut that power cannot
+tell from the best one.
 
 ## Workflow
 
@@ -64,24 +70,40 @@ reported to one significant figure.
 near-pure in a *non-focal* ancestry (default > 99%). Defining the reference group on the focal
 estimate itself would select the individuals the caller got right and underestimate ε₀.
 
-**Step 2. Choose a reliability curve.** ADMIT ships curves for African and South Asian focal ancestry,
-measured on simulated genomes (3,600 per ancestry, genome-wide, built from held-out founders) called by
-RFMix v2 against a five-ancestry HGDP + 1000 Genomes reference. Three routes are available:
+**Step 2. Choose a reliability curve.** ADMIT ships seven curves, each measured on simulated genomes of
+known ancestry built genome-wide from individuals that the caller's reference panel does not contain:
+
+| caller | reference panel | ancestry of interest (background) | simulated genomes |
+|---|---|---|---|
+| RFMix 2 | 446 individuals, five ancestries, HGDP + 1000 Genomes | African (European) | 5,489 |
+| | | South Asian (European) | 5,563 |
+| FLARE 0.6.0 | 3,201 individuals, five ancestries, HGDP + 1000 Genomes | African (European) | 6,500 |
+| | | South Asian (European) | 6,486 |
+| | | South Asian (African) | 2,997 |
+| | | Indigenous American (European) | 2,967 |
+| | | Indigenous American (African) | 904 |
+
+A curve belongs to a caller, a reference panel and a pair of ancestries. Three routes are available:
 
 | your setting | route |
 |---|---|
 | RFMix with a comparable reference | `curve = "AFR"` or `curve = "SAS"` |
-| another caller | `adm_curve("AFR", caller = "FLARE")`, or `adm_rescale(adm_curve("AFR"), eps0_to = eps)` |
+| FLARE with a comparable reference | `adm_curve("AFR", caller = "FLARE")`, also `"SAS"` and `"AMR"`, with `background = "European"` or `"African"` |
+| another caller with a similar ε₀ | `adm_rescale(adm_curve("AFR"), eps0_to = eps)` |
 | a new caller or reference panel | calibrate your own curve (below) |
 
-Reliability depends on global ancestry through q/ε₀, so a shipped curve transfers to another caller
-by rescaling with the two background rates. Between RFMix and FLARE, whose ε₀ differ 2.4-fold, the
-rescaled curves agree to a median of 0.005; a FLARE user choosing the window from the rescaled RFMix
-curve attains an efficiency of 0.858, against 0.859 from FLARE's own curve.
+Rescaling slides a curve along q by the ratio of two background rates. It is an approximation. The
+shipped RFMix and FLARE curves for African ancestry, whose ε₀ differ 2.3-fold, illustrate its reach:
+on the UK Biobank distribution of global ancestry, and judged by FLARE's own curve, the window chosen
+from the rescaled RFMix curve retains an efficiency of 0.908, against 0.914 from FLARE's own curve and
+0.855 from the RFMix curve without rescaling. The rescaled curve still differs from the measured one
+where global ancestry is lowest, so calibrate directly when the window matters.
 
 **Step 3. Compute the window.** `adm_threshold()` returns both optima, the efficiency and number of
 individuals retained at every candidate cut, and the fraction of truly unadmixed individuals each cut
-admits. `adm_efficiency()` evaluates any cut you specify.
+admits. `adm_efficiency()` evaluates any cut you specify. Both accept `call_var`, the variance of each
+individual's called dosage along the genome: above a global ancestry of 30% the curves assume more
+variance than real calls show, and `call_var` replaces the assumed value by the observed one.
 
 ## Calibrating a curve for your own caller
 
@@ -108,7 +130,7 @@ too few of them to measure reliability there.
 | `adm_eps0()` | background false-call rate of the caller, from your cohort |
 | `adm_threshold()` | detection- and estimation-optimal inclusion window |
 | `adm_efficiency()` | power efficiency and attenuation at any set of cuts |
-| `adm_curve()` | shipped reliability curves (RFMix 2 and FLARE 0.6.0; AFR, SAS; European or African background) |
+| `adm_curve()` | shipped reliability curves (RFMix 2 and FLARE 0.6.0; AFR, SAS, AMR; European or African background) |
 | `adm_rescale()` | transfer a curve to another caller via ε₀ |
 | `adm_holdout()`, `adm_simulate()`, `adm_score()` | calibrate a curve for a new caller |
 | `adm_reliability()` | closed-form reliability as a function of q and ε₀ |
@@ -119,8 +141,8 @@ A worked example is in the vignette: `vignette("admit", package = "ADMIT")`.
 
 If you use ADMIT, please cite:
 
-> Gan, Z. et al. Calibrated admixture mapping reveals ancestry-specific trans regulation of the human
-> plasma proteome. *In preparation* (2026).
+> Gan, Z. et al. Calibrated admixture mapping reveals ancestry differences in the plasma proteome.
+> *In preparation* (2026).
 
 ## Contact
 

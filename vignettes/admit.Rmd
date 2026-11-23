@@ -58,14 +58,19 @@ eps
 
 The reference group is defined on the other ancestries. Selecting individuals whose focal estimate is
 near zero would keep the ones the caller got right and underestimate ε₀. For South Asian ancestry in
-UK Biobank, the focal-estimate rule keeps 1,956 individuals, whereas the non-focal rule keeps 38,899
-and measures the higher rate the caller actually has.
+UK Biobank, the focal-estimate rule keeps 1,956 individuals, whereas the non-focal rule keeps 39,737
+and measures the higher rate the caller actually has (0.0044).
 
 ## Step 2: choose a reliability curve
 
-ADMIT ships reliability curves for African and South Asian focal ancestry. They were measured on
-3,600 simulated genomes per ancestry, built genome-wide from held-out founders and called by RFMix v2
-against a five-ancestry HGDP + 1000 Genomes reference:
+ADMIT ships seven reliability curves. Each was measured on simulated genomes of known ancestry, built
+genome-wide from individuals that the caller's reference panel does not contain. For RFMix 2 with a
+446-individual, five-ancestry HGDP + 1000 Genomes reference there are two, African and South Asian
+ancestry on a European background (5,489 and 5,563 genomes). For FLARE 0.6.0 with a 3,201-individual
+reference there are five: African ancestry on a European background (6,500 genomes), South Asian
+ancestry on a European and on an African background (6,486 and 2,997) and Indigenous American ancestry
+on a European and on an African background (2,967 and 904). A curve belongs to a caller, a reference
+panel and a pair of ancestries:
 
 ```{r}
 head(adm_curve("AFR"), 4)            # RFMix by default; adm_curve("AFR", caller = "FLARE") for FLARE
@@ -76,33 +81,39 @@ the scaling with ε₀ right but not the level. On the UK Biobank cohort:
 
 | | closed form | measured curve |
 |---|---|---|
-| reliability at q̂ ≈ 0.001 | 0.59 | **0.15** |
-| detection-optimal cut | 0.0021 | **0.0038** |
-| efficiency at that cut | 0.97 (claimed) | **0.84** |
+| reliability at q̂ ≈ 0.001 | 0.77 | **0.30** |
+| detection-optimal cut | 0.00084 | **0.0020** |
+| efficiency at that cut | 0.97 (claimed) | **0.89** |
 
-The closed form places the cut about twofold too tight and reports an efficiency the scan does not
-reach; at its cut the measured efficiency is 0.83. `adm_threshold()` warns when it is used without a
+The closed form places the cut more than twofold too low and reports an efficiency the scan does not
+reach; at its cut the measured efficiency is 0.88. `adm_threshold()` warns when it is used without a
 curve.
 
 ### Transferring a curve to another caller
 
-Reliability depends on global ancestry through q/ε₀, so a curve measured for one caller transfers to
-another by rescaling with the ratio of their background rates. RFMix and FLARE, run on the same
-simulated genomes, differ 2.4-fold in ε₀ (1.33 × 10⁻³ and 3.19 × 10⁻³), and their curves agree on the
-rescaled axis:
+The background rate sets where reliability falls, so a curve measured for one caller can be moved
+toward another by rescaling global ancestry with the ratio of their background rates. This is an
+approximation, and the two shipped curves for African ancestry show how far it reaches. They were
+measured with different reference panels, and their ε₀ differ 2.3-fold (5.1 × 10⁻⁴ for RFMix and
+1.16 × 10⁻³ for FLARE):
 
-| q/ε₀ | 0.4 | 1.5 | 7.5 | 38 | 150 |
-|---|---|---|---|---|---|
-| reliability, RFMix | 0.284 | 0.552 | 0.848 | 0.942 | 0.955 |
-| reliability, FLARE | 0.255 | 0.574 | 0.848 | 0.943 | 0.952 |
+| q/ε₀ | 1.5 | 7.5 | 38 | 150 |
+|---|---|---|---|---|
+| reliability, RFMix | 0.204 | 0.780 | 0.959 | 0.971 |
+| reliability, FLARE | 0.021 | 0.632 | 0.938 | 0.978 |
 
-The median disagreement across 0.38 < q/ε₀ < 319 is 0.005. On the 52,639-person cohort, a FLARE user
-choosing the window from the rescaled RFMix curve attains an efficiency of 0.858, against 0.859 from
-FLARE's own curve and 0.843 without rescaling:
+On the rescaled axis the two curves agree where global ancestry is high and differ where it is low
+(median difference 0.06). The window is less sensitive than the curve. On the UK Biobank
+distribution of global ancestry, and judged by FLARE's own curve, a FLARE user who chooses the window
+from the rescaled RFMix curve retains an efficiency of 0.908, against 0.914 from FLARE's own curve
+and 0.855 from the RFMix curve without rescaling:
 
 ```{r eval = FALSE}
-cur <- adm_rescale(adm_curve("AFR"), eps0_from = 1.33e-3, eps0_to = eps)
+cur <- adm_rescale(adm_curve("AFR"), eps0_to = eps)
 ```
+
+`adm_rescale()` warns when the two rates are far apart. Rescale between callers of similar ε₀ and
+similar reference panels; otherwise calibrate a curve.
 
 ### Calibrating a curve for a new caller
 
@@ -132,18 +143,23 @@ th <- adm_threshold(q_hat = global_Q$AFR, curve = "AFR", eps0 = eps)
 th
 #> Inclusion window  [measured curve]
 #>
-#>   detection optimum    0.00382   efficiency 0.840   keeps 3,705
-#>   estimation optimum   0.00568   efficiency 0.833   keeps 2,321
+#>   detection optimum    0.00198    efficiency 0.893   keeps 7,438
+#>   estimation optimum   0.00241    efficiency 0.891   keeps 6,160
 #>
-#>   recommended window   0.00382 to 0.00568
+#>   recommended window   0.00198 to 0.00241   (anything inside is within reach of both)
+#>
+#>   plateau              0.000688 to 0.00382   (efficiency within 0.02 of the optimum)
+#>   conservative end     0.00382    efficiency 0.876   keeps 3,705
+#>   Power cannot separate cuts inside the plateau. The conservative end costs at most
+#>   0.02 of efficiency and drops 3,733 individuals whose calls are least reliable.
 plot(th)
 ```
 
 The detection optimum maximizes the non-centrality of the test. The estimation optimum minimizes the
 mean squared error of the effect estimate, because a looser window shrinks the standard error but
 attenuates the estimate. Any cut between the two serves both purposes. Efficiency is flat near its
-maximum, so a twofold change in the cut costs less than 0.02 and the window can be reported to one
-significant figure.
+maximum: halving or doubling the detection-optimal cut costs less than 0.02, and the plateau line
+reports the whole range of cuts that power cannot tell apart.
 
 To evaluate cuts you are considering, including a convention you want to compare against, use
 `adm_efficiency()`. It returns the number of individuals retained, the efficiency, and the
@@ -151,11 +167,23 @@ attenuation factor R:
 
 ```{r eval = FALSE}
 adm_efficiency(global_Q$AFR, curve = "AFR", cuts = c(0.002, 0.005, 0.02, 0.05))
+#>     cut    n   eff     R
+#> 1 0.002 7369 0.893 0.946
+#> 2 0.005 2629 0.859 0.968
+#> 3 0.020 1312 0.806 0.971
+#> 4 0.050  981 0.755 0.971
 ```
 
-On UK Biobank, ADMIT returns 0.0038–0.0057 for African and 0.0054–0.016 for South Asian ancestry.
-The South Asian window is wider because RFMix assigns South Asian ancestry to unadmixed individuals at
-a higher rate.
+On UK Biobank, ADMIT returns 0.0020–0.0024 for African and 0.0084–0.025 for South Asian ancestry.
+The South Asian window is higher because RFMix assigns South Asian ancestry to unadmixed individuals at
+a higher rate, and its efficiency is lower (0.49 against 0.89) because South Asian ancestry is called
+less reliably at every level of global ancestry.
+
+Above a global ancestry of 30%, the curves assume more variance of local ancestry along the genome
+than real calls show, mostly because a person with one parent of each ancestry carries one copy at
+every position. If you pass `call_var`, the variance of each individual's called dosage along the
+genome, `adm_threshold()` and `adm_efficiency()` use the observed value there. On UK Biobank this
+lowers the predicted efficiency slightly and leaves the detection optimum where it was.
 
 ## Using the window in a scan
 

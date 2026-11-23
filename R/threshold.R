@@ -63,8 +63,8 @@ adm_reliability <- function(q, eps0, lambda = 1) {
 #' @param cuts Candidate lower cuts. Default is a log grid spanning the cohort.
 #' @param lambda Calling gain; see [adm_reliability()].
 #' @param upper Upper cut, applied symmetrically as `q_hat < upper`.
-#' @param curve A measured reliability curve from [adm_curve()] or [adm_rescale()]. Supplying one
-#'   replaces the closed form, which gets the scaling right and the level wrong.
+#' @param curve A measured reliability curve from [adm_curve()] or [adm_rescale()], or the string
+#'   `"AFR"` / `"SAS"`. Supplying one replaces the closed form, which gets the scaling right and the level wrong.
 #' @param call_var Optional. The variance of each individual's called focal dosage (0, 1 or 2 copies) along
 #'   the genome, one value per individual, in the order of `q_hat`. The curve assumes that individuals with
 #'   the same `q_hat` vary along the genome alike. That fails at high global ancestry: a person with one
@@ -80,6 +80,7 @@ adm_reliability <- function(q, eps0, lambda = 1) {
 adm_efficiency <- function(q_hat, eps0 = NULL, cuts = NULL, lambda = 1, upper = 1, curve = NULL,
                            call_var = NULL, call_var_from = 0.3) {
   if (is.null(curve) && is.null(eps0)) stop('give either `eps0` (closed form) or `curve` (measured)')
+  if (is.character(curve)) curve <- adm_curve(curve)   # "AFR" / "SAS", as adm_threshold() accepts (0.4.2)
   call_var <- .check_call_var(call_var, q_hat)
   q_hat <- q_hat[is.finite(q_hat)]
   q <- pmin(q_hat, 1 - q_hat)                       # fold: 0.98 focal is as informative as 0.02
